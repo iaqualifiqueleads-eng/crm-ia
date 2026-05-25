@@ -1,0 +1,116 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   Base — tipografia editorial, fundo pearl, dark via .dark
+   ============================================================ */
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html, body, #root {
+    height: 100%;
+  }
+
+  body {
+    @apply font-sans antialiased text-onyx bg-pearl;
+    font-feature-settings: "ss01", "cv11";
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Scrollbar discreta */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(10,10,11,0.12);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover { background-color: rgba(10,10,11,0.22); background-clip: content-box; }
+
+  /* Foco visível sem ser feio */
+  :focus-visible {
+    outline: 2px solid theme('colors.champagne.DEFAULT');
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  /* Estilos editoriais */
+  .display { @apply font-display tracking-tight; font-feature-settings: "lnum"; }
+  .label-eyebrow {
+    @apply text-2xs uppercase tracking-micro text-smoke font-medium;
+  }
+  .hairline { @apply border-platinum/70; }
+}
+
+/* ============================================================
+   Componentes utilitários
+   ============================================================ */
+@layer components {
+  .surface-card {
+    @apply bg-pearl border border-platinum/60 rounded-sharp shadow-card;
+  }
+  .surface-dark {
+    @apply bg-onyx text-pearl;
+  }
+
+  .btn-base {
+    @apply inline-flex items-center justify-center gap-2 font-medium text-sm
+           transition-all duration-200 ease-out select-none
+           disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn-base bg-onyx text-pearl hover:bg-carbon
+           px-5 py-2.5 rounded-sharp
+           shadow-[inset_0_1px_0_rgba(255,255,255,0.08)];
+  }
+  .btn-secondary {
+    @apply btn-base bg-pearl text-onyx border border-platinum/80 hover:border-onyx
+           px-5 py-2.5 rounded-sharp;
+  }
+  .btn-ghost {
+    @apply btn-base text-smoke hover:text-onyx px-3 py-1.5 rounded-sharp;
+  }
+  .btn-champagne {
+    @apply btn-base bg-champagne text-onyx hover:bg-champagne-100
+           px-5 py-2.5 rounded-sharp
+           shadow-[inset_0_1px_0_rgba(255,255,255,0.2)];
+  }
+
+  .input-base {
+    @apply w-full bg-pearl border border-platinum/80 rounded-sharp
+           px-3.5 py-2.5 text-sm text-onyx placeholder:text-smoke/60
+           focus:border-onyx focus:outline-none focus:ring-0
+           transition-colors duration-150;
+  }
+
+  /* Chip de status — usado em customer status, task priority, etc. */
+  .chip {
+    @apply inline-flex items-center gap-1.5 text-2xs uppercase tracking-micro
+           font-medium px-2 py-0.5 rounded-sharp border;
+  }
+
+  /* Linha-mestra editorial: divisor com ponto dourado */
+  .editorial-divider {
+    @apply relative h-px bg-platinum;
+  }
+  .editorial-divider::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 5px; height: 5px;
+    background: theme('colors.champagne.DEFAULT');
+    transform: translate(-50%, -50%) rotate(45deg);
+  }
+
+  /* Texturas para fundos sutis */
+  .bg-grain {
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(10,10,11,0.04) 1px, transparent 0);
+    background-size: 24px 24px;
+  }
+}
