@@ -24,7 +24,7 @@ export class WhatsAppWebhookService {
   constructor(
     private readonly prisma: PrismaService,
     @InjectQueue(QUEUES.AGENT_RESPONSE) private readonly agentQueue: Queue,
-  ) {}
+  ) { }
 
   /**
    * Entry point — recebe qualquer payload da Evolution e processa
@@ -92,17 +92,29 @@ export class WhatsAppWebhookService {
     // Marca a última outbound como REPLIED (encerra ciclo de retry da cadência)
     await this.markLastOutboundAsReplied(customer.id);
 
-    // Enfileira processamento pelo agente
+    // Acumula o texto no Redis para agregação
+    const existing = await this.agentQueue.getJob(`debounce-${customer.id}`);
+
+    // Busca textos anteriores acumulados no Redis (via BullMQ job data)
+    let accumulatedText = parsed.text;
+    if (existing) {
+      // Job ainda não executou — cancela e agrega o texto
+      const previousText = existing.data?.text ?? '';
+      accumulatedText = previousText + '\n' + parsed.text;
+      await existing.remove();
+    }
+
+    // Agenda (ou re-agenda) o job com delay de 15s
     await this.agentQueue.add(
       JOBS.PROCESS_INBOUND,
       {
         customerId: customer.id,
         interactionId: inbound.id,
-        text: parsed.text,
+        text: accumulatedText,
       },
       {
-        // Anti-flood: máximo 1 job por cliente em até 5s (rate limit no worker)
-        jobId: `inbound:${customer.id}:${inbound.id}`,
+        jobId: `debounce-${customer.id}`,
+        delay: 15_000, // 15 segundos de silêncio
         attempts: 2,
         backoff: { type: 'exponential', delay: 2_000 },
       },
