@@ -21,6 +21,10 @@ import { InteractionsModule } from './interactions/interactions.module';
 import { WorkersModule } from './workers/workers.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 
+// Fase 3
+import { AgentsModule } from './agents/agents.module';
+import { WhatsAppModule } from './whatsapp/whatsapp.module';
+
 import { envValidation } from './config/env.validation';
 
 @Module({
@@ -52,6 +56,10 @@ import { envValidation } from './config/env.validation';
     InteractionsModule,
     DashboardModule,
     WorkersModule,
+
+    // Fase 3 — agentes + WhatsApp real
+    AgentsModule,
+    WhatsAppModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

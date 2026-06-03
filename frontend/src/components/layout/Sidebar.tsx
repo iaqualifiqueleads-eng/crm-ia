@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, Briefcase, ListTodo, FileText, Settings, Send } from 'lucide-react';
+import { LayoutDashboard, Users, Briefcase, ListTodo, FileText, Settings, Send, Bot } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth.store';
 import type { UserRole } from '@/types';
@@ -16,6 +16,7 @@ const items: NavItem[] = [
   { to: '/customers', label: 'Carteira',      icon: Users },
   { to: '/orders',    label: 'Pedidos',       icon: Briefcase },
   { to: '/tasks',     label: 'Tarefas',       icon: ListTodo },
+  { to: '/agents',    label: 'Agentes IA',    icon: Bot },
   { to: '/templates', label: 'Templates',     icon: FileText, roles: ['MANAGER', 'SUPERVISOR'] },
   { to: '/team',      label: 'Equipe',        icon: Send,     roles: ['MANAGER', 'SUPERVISOR'] },
   { to: '/automation', label: 'Cadência',     icon: Settings, roles: ['MANAGER'] },

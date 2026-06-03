@@ -1,19 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { AIProvider, AIResponse, RenderTemplateInput } from './ai.types';
+import { LegacyAIRenderer, AIRenderResponse, RenderTemplateInput } from './ai.types';
 
 /**
- * Implementação MOCK — apenas substitui placeholders {{var}} pelos valores.
- * Não chama IA real. Permite testar todo o pipeline de envio de mensagens.
- *
- * Quando trocar para Claude/GPT, a única coisa que muda é esta classe —
- * o pipeline (templates, fila, retry) permanece intacto.
+ * Implementação MOCK do renderer LEGADO — apenas substitui placeholders {{var}}.
+ * Usada pelo flow de templates/cadência. Para conversas agênticas (Fase 3),
+ * use AIProviderRegistry → ClaudeProvider/OpenAIProvider/GeminiProvider.
  */
 @Injectable()
-export class MockAIService implements AIProvider {
+export class MockAIService implements LegacyAIRenderer {
   readonly name = 'mock';
   private readonly logger = new Logger(MockAIService.name);
 
-  async renderMessage(input: RenderTemplateInput): Promise<AIResponse> {
+  async renderMessage(input: RenderTemplateInput): Promise<AIRenderResponse> {
     const text = this.interpolate(input.template, input.variables);
 
     if (input.aiInstructions) {
@@ -31,7 +29,6 @@ export class MockAIService implements AIProvider {
 
   /**
    * Substitui placeholders no padrão {{nome}} pelos valores informados.
-   * Placeholders não resolvidos viram string vazia.
    */
   private interpolate(template: string, vars: Record<string, string | number>): string {
     return template.replace(/\{\{\s*([\w_.]+)\s*\}\}/g, (_match, key: string) => {

@@ -1,29 +1,78 @@
 /**
- * Contrato genérico de provedor de IA (Claude / ChatGPT).
- *
- * Implementações:
- *  - MockAIService (Fase 1.2) — apenas renderiza o template com placeholders
- *  - ClaudeAIService (Fase 3) — chamada real para a API Anthropic
- *  - OpenAIService (Fase 3) — chamada real para a API OpenAI
+ * Contrato unificado para todos os providers (Claude, OpenAI, Gemini).
  */
-export interface RenderTemplateInput {
-  /** Corpo do template com placeholders {{contactName}}, {{daysOverdue}}, etc. */
-  template: string;
-  /** Instrução opcional para a IA refinar o tom da mensagem antes de enviar. */
-  aiInstructions?: string;
-  /** Variáveis para interpolação de placeholders. */
-  variables: Record<string, string | number>;
+import { AiProvider } from '@prisma/client';
+
+export type ChatRole = 'system' | 'user' | 'assistant' | 'tool';
+
+export interface ChatMessage {
+  role: ChatRole;
+  content: string;
+  toolCalls?: ToolCall[];
+  toolCallId?: string;
+  toolName?: string;
 }
 
-export interface AIResponse {
+export interface ToolCall {
+  id: string;
+  name: string;
+  arguments: Record<string, any>;
+}
+
+export interface ToolDefinition {
+  name: string;
+  description: string;
+  parameters: {
+    type: 'object';
+    properties: Record<string, any>;
+    required?: string[];
+  };
+}
+
+export interface ChatRequest {
+  model: string;
+  systemPrompt: string;
+  temperature: number;
+  maxTokens: number;
+  messages: ChatMessage[];
+  tools?: ToolDefinition[];
+}
+
+export interface ChatResponse {
+  content: string;
+  toolCalls: ToolCall[];
+  usage: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
+  finishReason: string;
+  providerMessageId?: string;
+}
+
+export interface AIProvider {
+  readonly providerName: AiProvider;
+  readonly availableModels: string[];
+  chat(request: ChatRequest): Promise<ChatResponse>;
+}
+
+// Compatibilidade: tipos antigos do mock
+export interface RenderTemplateInput {
+  template: string;
+  aiInstructions?: string;
+  variables: Record<string, string | number>;
+}
+export interface AIRenderResponse {
   text: string;
   model: string;
   tokensUsed?: number;
 }
 
-export interface AIProvider {
-  renderMessage(input: RenderTemplateInput): Promise<AIResponse>;
+/** Contrato do renderer legado (usado pelo flow de templates/cadência). */
+export interface LegacyAIRenderer {
   readonly name: string;
+  renderMessage(input: RenderTemplateInput): Promise<AIRenderResponse>;
 }
 
 export const AI_PROVIDER = Symbol('AI_PROVIDER');
+export const AI_PROVIDER_REGISTRY = Symbol('AI_PROVIDER_REGISTRY');

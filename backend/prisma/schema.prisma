@@ -8,8 +8,13 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
+  provider          = "mysql"
+  url               = env("DATABASE_URL")
+  // Shadow database — usada apenas em desenvolvimento (prisma migrate dev).
+  // Precisa de um usuário com permissão CREATE DATABASE; usamos o root do
+  // MySQL local (Docker). Em produção, NÃO defina esta variável e use
+  // `prisma migrate deploy` — esse comando não usa shadow database.
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 // ============================================================
@@ -17,22 +22,22 @@ datasource db {
 // ============================================================
 
 enum UserRole {
-  MANAGER // Gerente — vê tudo, cria supervisores e vendedores
-  SUPERVISOR // Supervisor — vê sua equipe e clientes dela
+  MANAGER     // Gerente — vê tudo, cria supervisores e vendedores
+  SUPERVISOR  // Supervisor — vê sua equipe e clientes dela
   SALESPERSON // Vendedor — vê apenas seus clientes
 }
 
 enum CustomerStatus {
-  LEAD // Ainda não comprou
-  PROSPECT // Em negociação
-  ACTIVE // Cliente ativo (compra recorrente)
-  AT_RISK // Atrasou reposição
-  CHURNED // Perdido
+  LEAD       // Ainda não comprou
+  PROSPECT   // Em negociação
+  ACTIVE     // Cliente ativo (compra recorrente)
+  AT_RISK    // Atrasou reposição
+  CHURNED    // Perdido
 }
 
 enum ForecastMode {
-  AUTO // Calculado pela média de intervalos
-  MANUAL // Vendedor sobrescreveu manualmente
+  AUTO       // Calculado pela média de intervalos
+  MANUAL     // Vendedor sobrescreveu manualmente
 }
 
 enum OrderChannel {
@@ -62,9 +67,9 @@ model User {
   // Para um SALESPERSON  -> aponta para um SUPERVISOR (ou MANAGER em equipes pequenas)
   // Para um SUPERVISOR   -> aponta para o MANAGER
   // Para o MANAGER       -> null
-  supervisorId String? @db.VarChar(36)
-  supervisor   User?   @relation("UserHierarchy", fields: [supervisorId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  subordinates User[]  @relation("UserHierarchy")
+  supervisorId String?  @db.VarChar(36)
+  supervisor   User?    @relation("UserHierarchy", fields: [supervisorId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  subordinates User[]   @relation("UserHierarchy")
 
   // Relacionamentos
   customers      Customer[]      @relation("CustomerSalesperson")
@@ -78,6 +83,9 @@ model User {
   interactions     Interaction[]     @relation("InteractionAuthor")
   templatesCreated MessageTemplate[] @relation("TemplateCreatedBy")
   notifications    Notification[]    @relation("UserNotifications")
+
+  // Fase 3
+  agentsCreated    Agent[]           @relation("AgentCreatedBy")
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -95,15 +103,15 @@ model User {
 // ============================================================
 
 model RefreshToken {
-  id        String    @id @default(uuid()) @db.VarChar(36)
-  userId    String    @db.VarChar(36)
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  tokenHash String    @db.VarChar(255)
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  userId    String   @db.VarChar(36)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  tokenHash String   @db.VarChar(255)
   expiresAt DateTime
   revokedAt DateTime?
-  userAgent String?   @db.VarChar(500)
-  ipAddress String?   @db.VarChar(50)
-  createdAt DateTime  @default(now())
+  userAgent String?  @db.VarChar(500)
+  ipAddress String?  @db.VarChar(50)
+  createdAt DateTime @default(now())
 
   @@index([userId])
   @@index([expiresAt])
@@ -115,48 +123,54 @@ model RefreshToken {
 // ============================================================
 
 model Customer {
-  id          String  @id @default(uuid()) @db.VarChar(36)
+  id          String         @id @default(uuid()) @db.VarChar(36)
   // Identificação
-  companyName String  @db.VarChar(200)
-  tradeName   String? @db.VarChar(200)
-  cnpj        String? @unique @db.VarChar(20)
-  email       String? @db.VarChar(191)
-  phone       String? @db.VarChar(30)
-  whatsapp    String? @db.VarChar(30)
+  companyName String         @db.VarChar(200)
+  tradeName   String?        @db.VarChar(200)
+  cnpj        String?        @unique @db.VarChar(20)
+  email       String?        @db.VarChar(191)
+  phone       String?        @db.VarChar(30)
+  whatsapp    String?        @db.VarChar(30)
 
   // Endereço
-  address String? @db.VarChar(255)
-  city    String? @db.VarChar(100)
-  state   String? @db.VarChar(50)
-  zipCode String? @db.VarChar(20)
+  address     String?        @db.VarChar(255)
+  city        String?        @db.VarChar(100)
+  state       String?        @db.VarChar(50)
+  zipCode     String?        @db.VarChar(20)
 
   // Pessoa de contato principal
-  contactName String? @db.VarChar(150)
-  contactRole String? @db.VarChar(100)
+  contactName  String?       @db.VarChar(150)
+  contactRole  String?       @db.VarChar(100)
 
   // Classificação
-  status CustomerStatus @default(LEAD)
-  origin String?        @db.VarChar(100) // como chegou (indicação, traffic, etc.)
-  tags   String?        @db.Text // CSV simples; se virar muito complexo, vira tabela
-  notes  String?        @db.Text
+  status       CustomerStatus @default(LEAD)
+  origin       String?        @db.VarChar(100) // como chegou (indicação, traffic, etc.)
+  tags         String?        @db.Text         // CSV simples; se virar muito complexo, vira tabela
+  notes        String?        @db.Text
 
   // Carteira — responsável direto (vendedor) e supervisor da época
   // Mantemos snapshot do supervisorId para histórico, mesmo se o salesperson mudar de supervisor.
-  salespersonId String @db.VarChar(36)
-  salesperson   User   @relation("CustomerSalesperson", fields: [salespersonId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  salespersonId String        @db.VarChar(36)
+  salesperson   User          @relation("CustomerSalesperson", fields: [salespersonId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   // Previsão de recompra (Forecast)
-  forecastMode         ForecastMode @default(AUTO)
-  forecastIntervalDays Int? // intervalo médio calculado ou manual (em dias)
-  manualIntervalDays   Int? // valor manual que sobrescreve o automático
-  lastOrderAt          DateTime? // data do último pedido (cache)
-  nextReplenishmentAt  DateTime? // data prevista da próxima recompra (cache calculado)
-  daysOverdue          Int          @default(0) // dias em atraso (cache, atualizado por job)
+  forecastMode           ForecastMode @default(AUTO)
+  forecastIntervalDays   Int?         // intervalo médio calculado ou manual (em dias)
+  manualIntervalDays     Int?         // valor manual que sobrescreve o automático
+  lastOrderAt            DateTime?    // data do último pedido (cache)
+  nextReplenishmentAt    DateTime?    // data prevista da próxima recompra (cache calculado)
+  daysOverdue            Int          @default(0) // dias em atraso (cache, atualizado por job)
 
   // Métricas (cache)
-  totalOrders   Int     @default(0)
-  totalRevenue  Decimal @default(0) @db.Decimal(14, 2)
-  averageTicket Decimal @default(0) @db.Decimal(14, 2)
+  totalOrders    Int     @default(0)
+  totalRevenue   Decimal @default(0) @db.Decimal(14, 2)
+  averageTicket  Decimal @default(0) @db.Decimal(14, 2)
+
+  // Fase 3 — agente de IA que atende este cliente.
+  // Se null, usa o agente default do workspace.
+  // (Hoje todos usam o default; campo já existe para uso futuro de "override por cliente")
+  agentId   String? @db.VarChar(36)
+  agent     Agent?  @relation(fields: [agentId], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
   // Soft delete
   createdAt DateTime  @default(now())
@@ -164,13 +178,16 @@ model Customer {
   deletedAt DateTime?
 
   // Relacionamentos
-  orders    Order[]
-  events    CustomerEvent[]
-  transfers CustomerTransfer[]
+  orders        Order[]
+  events        CustomerEvent[]
+  transfers     CustomerTransfer[]
 
   // Fase 1.2
-  tasks        Task[]
-  interactions Interaction[] @relation("CustomerInteractions")
+  tasks         Task[]
+  interactions  Interaction[]      @relation("CustomerInteractions")
+
+  // Fase 3
+  aiUsages      AiUsage[]
 
   @@index([salespersonId])
   @@index([status])
@@ -178,6 +195,7 @@ model Customer {
   @@index([daysOverdue])
   @@index([deletedAt])
   @@index([companyName])
+  @@index([agentId])
   @@map("customers")
 }
 
@@ -187,16 +205,16 @@ model Customer {
 // ============================================================
 
 model CustomerTransfer {
-  id         String   @id @default(uuid()) @db.VarChar(36)
-  customerId String   @db.VarChar(36)
-  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  id              String   @id @default(uuid()) @db.VarChar(36)
+  customerId      String   @db.VarChar(36)
+  customer        Customer @relation(fields: [customerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   fromSalespersonId String? @db.VarChar(36)
   toSalespersonId   String  @db.VarChar(36)
   transferredById   String  @db.VarChar(36) // supervisor ou gerente que fez
 
-  reason    String?  @db.Text
-  createdAt DateTime @default(now())
+  reason          String?  @db.Text
+  createdAt       DateTime @default(now())
 
   @@index([customerId])
   @@index([fromSalespersonId])
@@ -215,15 +233,15 @@ model CustomerEvent {
   customerId String   @db.VarChar(36)
   customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  authorId String? @db.VarChar(36)
-  author   User?   @relation(fields: [authorId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  authorId   String?  @db.VarChar(36)
+  author     User?    @relation(fields: [authorId], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
-  type        String  @db.VarChar(50) // CREATED | STATUS_CHANGED | TRANSFERRED | FORECAST_UPDATED | NOTE | ORDER_CREATED ...
-  title       String  @db.VarChar(200)
+  type       String   @db.VarChar(50) // CREATED | STATUS_CHANGED | TRANSFERRED | FORECAST_UPDATED | NOTE | ORDER_CREATED ...
+  title      String   @db.VarChar(200)
   description String? @db.Text
-  metadata    String? @db.LongText // JSON serializado com payload arbitrário
+  metadata   String?  @db.LongText   // JSON serializado com payload arbitrário
 
-  createdAt DateTime @default(now())
+  createdAt  DateTime @default(now())
 
   @@index([customerId])
   @@index([authorId])
@@ -237,29 +255,29 @@ model CustomerEvent {
 // ============================================================
 
 model Order {
-  id         String   @id @default(uuid()) @db.VarChar(36)
-  customerId String   @db.VarChar(36)
-  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  id           String       @id @default(uuid()) @db.VarChar(36)
+  customerId   String       @db.VarChar(36)
+  customer     Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   // Quem registrou o pedido no sistema
-  createdById String @db.VarChar(36)
-  createdBy   User   @relation("OrderCreatedBy", fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  createdById  String       @db.VarChar(36)
+  createdBy    User         @relation("OrderCreatedBy", fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
-  orderNumber String?      @db.VarChar(50) // número do pedido no ERP (opcional)
-  orderedAt   DateTime // data efetiva do pedido (não do registro)
-  channel     OrderChannel @default(OTHER)
+  orderNumber  String?      @db.VarChar(50)   // número do pedido no ERP (opcional)
+  orderedAt    DateTime                       // data efetiva do pedido (não do registro)
+  channel      OrderChannel @default(OTHER)
 
-  totalAmount Decimal  @db.Decimal(14, 2)
-  totalVolume Decimal? @db.Decimal(14, 3) // unidade definida no item (kg, m², un.)
-  currency    String   @default("BRL") @db.VarChar(3)
+  totalAmount  Decimal      @db.Decimal(14, 2)
+  totalVolume  Decimal?     @db.Decimal(14, 3) // unidade definida no item (kg, m², un.)
+  currency     String       @default("BRL") @db.VarChar(3)
 
-  notes String? @db.Text
+  notes        String?      @db.Text
 
-  items OrderItem[]
+  items        OrderItem[]
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  deletedAt    DateTime?
 
   @@index([customerId])
   @@index([createdById])
@@ -269,9 +287,9 @@ model Order {
 }
 
 model OrderItem {
-  id      String @id @default(uuid()) @db.VarChar(36)
-  orderId String @db.VarChar(36)
-  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  id         String  @id @default(uuid()) @db.VarChar(36)
+  orderId    String  @db.VarChar(36)
+  order      Order   @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   productSku  String? @db.VarChar(50)
   productName String  @db.VarChar(200)
@@ -295,7 +313,7 @@ enum TaskType {
   MEETING
   FOLLOW_UP
   VISIT
-  REPLENISHMENT_DUE // gerada pelo sistema quando chega o dia previsto
+  REPLENISHMENT_DUE   // gerada pelo sistema quando chega o dia previsto
   REPLENISHMENT_OVERDUE // gerada quando cliente atrasa
 }
 
@@ -318,24 +336,24 @@ enum InteractionType {
   EMAIL
   MEETING
   WHATSAPP
-  WHATSAPP_AI // mensagem enviada pela IA
+  WHATSAPP_AI    // mensagem enviada pela IA
   NOTE
-  SYSTEM // evento automático
+  SYSTEM         // evento automático
 }
 
 enum InteractionDirection {
   OUTBOUND
   INBOUND
-  INTERNAL // nota interna, não enviada ao cliente
+  INTERNAL       // nota interna, não enviada ao cliente
 }
 
 enum InteractionStatus {
-  PENDING // criada, aguardando envio
-  SENT // enviada ao canal
-  DELIVERED // confirmada como entregue
-  READ // confirmada como lida
-  REPLIED // cliente respondeu
-  FAILED // falha de envio
+  PENDING        // criada, aguardando envio
+  SENT           // enviada ao canal
+  DELIVERED      // confirmada como entregue
+  READ           // confirmada como lida
+  REPLIED        // cliente respondeu
+  FAILED         // falha de envio
 }
 
 enum TemplateTrigger {
@@ -359,35 +377,35 @@ enum NotificationSeverity {
 // ============================================================
 
 model Task {
-  id          String  @id @default(uuid()) @db.VarChar(36)
-  title       String  @db.VarChar(200)
-  description String? @db.Text
+  id           String       @id @default(uuid()) @db.VarChar(36)
+  title        String       @db.VarChar(200)
+  description  String?      @db.Text
 
-  type     TaskType     @default(FOLLOW_UP)
-  priority TaskPriority @default(MEDIUM)
-  status   TaskStatus   @default(PENDING)
+  type         TaskType     @default(FOLLOW_UP)
+  priority     TaskPriority @default(MEDIUM)
+  status       TaskStatus   @default(PENDING)
 
-  dueDate     DateTime?
-  completedAt DateTime?
+  dueDate      DateTime?
+  completedAt  DateTime?
 
   // Atribuição
-  assigneeId String @db.VarChar(36)
-  assignee   User   @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  assigneeId   String       @db.VarChar(36)
+  assignee     User         @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
-  createdById String? @db.VarChar(36)
-  createdBy   User?   @relation("TaskCreatedBy", fields: [createdById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  createdById  String?      @db.VarChar(36)
+  createdBy    User?        @relation("TaskCreatedBy", fields: [createdById], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
   // Vínculos opcionais
-  customerId String?   @db.VarChar(36)
-  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  customerId   String?      @db.VarChar(36)
+  customer     Customer?    @relation(fields: [customerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   // Metadados para tasks geradas por automação
-  isAutomatic   Boolean @default(false)
-  automationRef String? @db.VarChar(100) // identificador do rule/source que gerou
+  isAutomatic  Boolean      @default(false)
+  automationRef String?     @db.VarChar(100) // identificador do rule/source que gerou
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  deletedAt    DateTime?
 
   @@index([assigneeId])
   @@index([customerId])
@@ -403,29 +421,29 @@ model Task {
 // ============================================================
 
 model Interaction {
-  id         String   @id @default(uuid()) @db.VarChar(36)
-  customerId String   @db.VarChar(36)
-  customer   Customer @relation("CustomerInteractions", fields: [customerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  id           String              @id @default(uuid()) @db.VarChar(36)
+  customerId   String              @db.VarChar(36)
+  customer     Customer            @relation("CustomerInteractions", fields: [customerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  type      InteractionType
-  direction InteractionDirection @default(OUTBOUND)
-  status    InteractionStatus    @default(PENDING)
+  type         InteractionType
+  direction    InteractionDirection @default(OUTBOUND)
+  status       InteractionStatus   @default(PENDING)
 
   // Conteúdo
-  content String  @db.LongText // texto bruto; mídia metadata em jsonMetadata
-  channel String? @db.VarChar(50) // whatsapp, sms, email, etc.
+  content      String              @db.LongText  // texto bruto; mídia metadata em jsonMetadata
+  channel      String?             @db.VarChar(50) // whatsapp, sms, email, etc.
 
   // Para mensagens automáticas
-  templateId    String?          @db.VarChar(36)
-  template      MessageTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  automationRef String?          @db.VarChar(100)
+  templateId   String?             @db.VarChar(36)
+  template     MessageTemplate?    @relation(fields: [templateId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  automationRef String?            @db.VarChar(100)
 
   // Quem registrou (pode ser null para mensagens automáticas)
-  authorId String? @db.VarChar(36)
-  author   User?   @relation("InteractionAuthor", fields: [authorId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  authorId     String?             @db.VarChar(36)
+  author       User?               @relation("InteractionAuthor", fields: [authorId], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
   // Identificador externo (id da mensagem no WhatsApp, etc.)
-  externalId String? @db.VarChar(191)
+  externalId   String?             @db.VarChar(191)
 
   // Timestamps específicos
   scheduledAt  DateTime?
@@ -433,12 +451,12 @@ model Interaction {
   deliveredAt  DateTime?
   readAt       DateTime?
   repliedAt    DateTime?
-  failedReason String?   @db.VarChar(500)
+  failedReason String?             @db.VarChar(500)
 
-  jsonMetadata String? @db.LongText // payload livre: mídias, contexto IA, etc.
+  jsonMetadata String?             @db.LongText  // payload livre: mídias, contexto IA, etc.
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
 
   @@index([customerId])
   @@index([authorId])
@@ -454,25 +472,25 @@ model Interaction {
 // ============================================================
 
 model MessageTemplate {
-  id             String          @id @default(uuid()) @db.VarChar(36)
-  name           String          @db.VarChar(150)
-  trigger        TemplateTrigger @default(CUSTOM)
+  id           String          @id @default(uuid()) @db.VarChar(36)
+  name         String          @db.VarChar(150)
+  trigger      TemplateTrigger @default(CUSTOM)
   // Corpo da mensagem com placeholders ({{contactName}}, {{daysOverdue}}, etc.)
-  body           String          @db.Text
+  body         String          @db.Text
   // Tom / instrução para IA refinar a mensagem antes de enviar (opcional)
-  aiInstructions String?         @db.Text
+  aiInstructions String?       @db.Text
 
-  channel  String  @default("whatsapp") @db.VarChar(50)
-  isActive Boolean @default(true)
+  channel      String          @default("whatsapp") @db.VarChar(50)
+  isActive     Boolean         @default(true)
 
-  createdById String @db.VarChar(36)
-  createdBy   User   @relation("TemplateCreatedBy", fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  createdById  String          @db.VarChar(36)
+  createdBy    User            @relation("TemplateCreatedBy", fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   interactions Interaction[]
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  deletedAt    DateTime?
 
   @@index([trigger])
   @@index([isActive])
@@ -486,16 +504,16 @@ model MessageTemplate {
 // ============================================================
 
 model AutomationRule {
-  id          String  @id @default(uuid()) @db.VarChar(36)
+  id            String   @id @default(uuid()) @db.VarChar(36)
   // Chave única de configuração — só pode haver uma de cada
-  key         String  @unique @db.VarChar(100)
-  description String? @db.Text
+  key           String   @unique @db.VarChar(100)
+  description   String?  @db.Text
   // Configuração serializada (JSON)
-  config      String  @db.LongText
-  isActive    Boolean @default(true)
+  config        String   @db.LongText
+  isActive      Boolean  @default(true)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@map("automation_rules")
 }
@@ -505,27 +523,163 @@ model AutomationRule {
 // ============================================================
 
 model Notification {
-  id     String @id @default(uuid()) @db.VarChar(36)
-  userId String @db.VarChar(36)
-  user   User   @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  id           String               @id @default(uuid()) @db.VarChar(36)
+  userId       String               @db.VarChar(36)
+  user         User                 @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  severity NotificationSeverity @default(INFO)
-  title    String               @db.VarChar(200)
-  message  String               @db.Text
+  severity     NotificationSeverity @default(INFO)
+  title        String               @db.VarChar(200)
+  message      String               @db.Text
 
   // Link clicável (ex: /customers/uuid)
-  linkUrl String? @db.VarChar(500)
+  linkUrl      String?              @db.VarChar(500)
 
   // Vínculos opcionais
-  customerId String? @db.VarChar(36)
-  taskId     String? @db.VarChar(36)
+  customerId   String?              @db.VarChar(36)
+  taskId       String?              @db.VarChar(36)
 
-  readAt    DateTime?
-  createdAt DateTime  @default(now())
+  readAt       DateTime?
+  createdAt    DateTime             @default(now())
 
   @@index([userId])
   @@index([readAt])
   @@index([customerId])
   @@index([createdAt])
   @@map("notifications")
+}
+
+// ============================================================
+// FASE 3 — Agentes de IA + telemetria
+// ============================================================
+
+enum AiProvider {
+  CLAUDE
+  OPENAI
+  GEMINI
+}
+
+enum AgentDefault {
+  WORKSPACE_DEFAULT
+  // No futuro: outros tipos de default
+}
+
+// ============================================================
+// AGENT — persona configurada de IA
+// ============================================================
+
+model Agent {
+  id            String     @id @default(uuid()) @db.VarChar(36)
+
+  name          String     @db.VarChar(150)
+  description   String?    @db.Text
+
+  // Provedor + modelo
+  provider      AiProvider
+  model         String     @db.VarChar(80)   // ex: 'claude-sonnet-4-6', 'gpt-4o-mini', 'gemini-2.5-pro'
+
+  // Configuração de geração
+  systemPrompt  String     @db.LongText     // a instrução-mestra
+  temperature   Float      @default(0.7)
+  maxTokens     Int        @default(1024)
+
+  // Tools que o agente PODE chamar (CSV de tool names, ex: 'register_order,transfer_to_human')
+  // Se vazio, agente é puramente conversacional.
+  enabledTools  String?    @db.Text
+
+  // Status
+  isActive      Boolean    @default(true)
+  // Há SEMPRE no máximo um agente com isDefault=true por workspace
+  isDefault     Boolean    @default(false)
+
+  // Autoria (quem criou — para auditoria; manager/supervisor)
+  createdById   String     @db.VarChar(36)
+  createdBy     User       @relation("AgentCreatedBy", fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  deletedAt     DateTime?
+
+  // Relacionamentos
+  customers     Customer[]
+  aiUsages      AiUsage[]
+  toolCalls     AgentToolCall[]
+
+  @@index([isActive])
+  @@index([isDefault])
+  @@index([createdById])
+  @@index([deletedAt])
+  @@map("agents")
+}
+
+// ============================================================
+// AI USAGE — telemetria de tokens e custo por chamada
+// ============================================================
+
+model AiUsage {
+  id            String     @id @default(uuid()) @db.VarChar(36)
+
+  agentId       String     @db.VarChar(36)
+  agent         Agent      @relation(fields: [agentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  // Contexto opcional — quando a usage veio de uma conversa com cliente
+  customerId    String?    @db.VarChar(36)
+  customer      Customer?  @relation(fields: [customerId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  interactionId String?    @db.VarChar(36)
+
+  provider      AiProvider
+  model         String     @db.VarChar(80)
+
+  // Tokens
+  promptTokens     Int
+  completionTokens Int
+  totalTokens      Int
+
+  // Custo calculado em USD (snapshot no momento da chamada)
+  costUsd       Decimal    @db.Decimal(10, 6)
+  costBrl       Decimal    @db.Decimal(10, 4)     // convertido com USD_BRL_RATE do .env
+
+  // Latência (ms) — útil para diagnosticar provider lento
+  latencyMs     Int
+
+  // Origem da chamada — playground vs real conversation
+  source        String     @default("conversation") @db.VarChar(30) // 'playground' | 'conversation'
+
+  errorMessage  String?    @db.Text
+
+  createdAt     DateTime   @default(now())
+
+  @@index([agentId])
+  @@index([customerId])
+  @@index([provider])
+  @@index([createdAt])
+  @@map("ai_usages")
+}
+
+// ============================================================
+// AGENT TOOL CALL — registro de cada ferramenta chamada pela IA
+// ============================================================
+
+model AgentToolCall {
+  id            String     @id @default(uuid()) @db.VarChar(36)
+
+  agentId       String     @db.VarChar(36)
+  agent         Agent      @relation(fields: [agentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  customerId    String?    @db.VarChar(36)
+  interactionId String?    @db.VarChar(36)
+
+  toolName      String     @db.VarChar(80)
+  arguments     String     @db.LongText     // JSON
+  result        String?    @db.LongText     // JSON do resultado
+  succeeded     Boolean    @default(false)
+  errorMessage  String?    @db.Text
+
+  createdAt     DateTime   @default(now())
+
+  @@index([agentId])
+  @@index([customerId])
+  @@index([toolName])
+  @@index([createdAt])
+  @@map("agent_tool_calls")
 }

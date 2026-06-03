@@ -106,15 +106,15 @@ export class DashboardService {
         SELECT
           u.id           AS salespersonId,
           u.name         AS name,
-          COALESCE(SUM(o.totalAmount), 0) AS totalRevenue,
+          COALESCE(SUM(o.\`totalAmount\`), 0) AS totalRevenue,
           COUNT(o.id)    AS orderCount
         FROM users u
         LEFT JOIN customers c
-          ON c.salespersonId = u.id AND c.deletedAt IS NULL
+          ON c.\`salespersonId\` = u.id AND c.\`deletedAt\` IS NULL
         LEFT JOIN orders o
-          ON o.customerId = c.id AND o.deletedAt IS NULL AND o.orderedAt >= ${since}
+          ON o.\`customerId\` = c.id AND o.\`deletedAt\` IS NULL AND o.\`orderedAt\` >= ${since}
         WHERE u.id IN (${Prisma.join(visible.length ? visible : [''])})
-          AND u.deletedAt IS NULL
+          AND u.\`deletedAt\` IS NULL
         GROUP BY u.id, u.name
         ORDER BY totalRevenue DESC
         LIMIT 5
@@ -124,31 +124,31 @@ export class DashboardService {
       (this.prisma.$queryRaw as any)(Prisma.sql`
         SELECT
           CASE
-            WHEN daysOverdue BETWEEN 1 AND 3   THEN '1-3'
-            WHEN daysOverdue BETWEEN 4 AND 7   THEN '4-7'
-            WHEN daysOverdue BETWEEN 8 AND 15  THEN '8-15'
-            WHEN daysOverdue BETWEEN 16 AND 30 THEN '16-30'
-            WHEN daysOverdue > 30              THEN '30+'
+            WHEN \`daysOverdue\` BETWEEN 1 AND 3   THEN '1-3'
+            WHEN \`daysOverdue\` BETWEEN 4 AND 7   THEN '4-7'
+            WHEN \`daysOverdue\` BETWEEN 8 AND 15  THEN '8-15'
+            WHEN \`daysOverdue\` BETWEEN 16 AND 30 THEN '16-30'
+            WHEN \`daysOverdue\` > 30              THEN '30+'
             ELSE '0'
           END AS bucket,
           COUNT(*) AS total
         FROM customers
-        WHERE deletedAt IS NULL
-          AND salespersonId IN (${Prisma.join(visible.length ? visible : [''])})
-          AND daysOverdue > 0
+        WHERE \`deletedAt\` IS NULL
+          AND \`salespersonId\` IN (${Prisma.join(visible.length ? visible : [''])})
+          AND \`daysOverdue\` > 0
         GROUP BY bucket
       `) as Promise<Array<{ bucket: string; total: bigint }>>,
 
       // Série diária de novos clientes
       (this.prisma.$queryRaw as any)(Prisma.sql`
         SELECT
-          DATE(createdAt) AS day,
+          DATE(\`createdAt\`) AS day,
           COUNT(*) AS total
         FROM customers
-        WHERE deletedAt IS NULL
-          AND createdAt >= ${since}
-          AND salespersonId IN (${Prisma.join(visible.length ? visible : [''])})
-        GROUP BY DATE(createdAt)
+        WHERE \`deletedAt\` IS NULL
+          AND \`createdAt\` >= ${since}
+          AND \`salespersonId\` IN (${Prisma.join(visible.length ? visible : [''])})
+        GROUP BY DATE(\`createdAt\`)
         ORDER BY day ASC
       `) as Promise<Array<{ day: Date; total: bigint }>>,
     ]);

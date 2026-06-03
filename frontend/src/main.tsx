@@ -20,6 +20,11 @@ import { AutomationPage } from '@/pages/AutomationPage';
 import { NotificationsPage } from '@/pages/NotificationsPage';
 import { AccountPage } from '@/pages/AccountPage';
 
+// Fase 3
+import { AgentsPage } from '@/pages/AgentsPage';
+import { PlaygroundPage } from '@/pages/PlaygroundPage';
+import { AgentUsagePage } from '@/pages/AgentUsagePage';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: { staleTime: 30_000, refetchOnWindowFocus: false, retry: 1 },
@@ -62,6 +67,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route path="automation"       element={<AutomationPage />} />
             <Route path="notifications"    element={<NotificationsPage />} />
             <Route path="account"          element={<AccountPage />} />
+
+            {/* Fase 3 */}
+            <Route path="agents"                  element={<AgentsPage />} />
+            <Route path="agents/:id/playground"   element={<PlaygroundPage />} />
+            <Route path="agents/:id/usage"        element={<AgentUsagePage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

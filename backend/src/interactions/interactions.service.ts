@@ -26,7 +26,7 @@ import {
   MESSAGING_PROVIDER,
   MessagingProvider,
 } from '../messaging/messaging.types';
-import { AI_PROVIDER, AIProvider } from '../ai/ai.types';
+import { AI_PROVIDER, LegacyAIRenderer } from '../ai/ai.types';
 
 @Injectable()
 export class InteractionsService {
@@ -35,7 +35,7 @@ export class InteractionsService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(MESSAGING_PROVIDER) private readonly messaging: MessagingProvider,
-    @Inject(AI_PROVIDER) private readonly ai: AIProvider,
+    @Inject(AI_PROVIDER) private readonly ai: LegacyAIRenderer,
   ) {}
 
   // -------------------------------------------------------

@@ -66,6 +66,7 @@ CREATE TABLE `customers` (
     `totalOrders` INTEGER NOT NULL DEFAULT 0,
     `totalRevenue` DECIMAL(14, 2) NOT NULL DEFAULT 0,
     `averageTicket` DECIMAL(14, 2) NOT NULL DEFAULT 0,
+    `agentId` VARCHAR(36) NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
     `deletedAt` DATETIME(3) NULL,
@@ -77,6 +78,7 @@ CREATE TABLE `customers` (
     INDEX `customers_daysOverdue_idx`(`daysOverdue`),
     INDEX `customers_deletedAt_idx`(`deletedAt`),
     INDEX `customers_companyName_idx`(`companyName`),
+    INDEX `customers_agentId_idx`(`agentId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -268,6 +270,76 @@ CREATE TABLE `notifications` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+-- CreateTable
+CREATE TABLE `agents` (
+    `id` VARCHAR(36) NOT NULL,
+    `name` VARCHAR(150) NOT NULL,
+    `description` TEXT NULL,
+    `provider` ENUM('CLAUDE', 'OPENAI', 'GEMINI') NOT NULL,
+    `model` VARCHAR(80) NOT NULL,
+    `systemPrompt` LONGTEXT NOT NULL,
+    `temperature` DOUBLE NOT NULL DEFAULT 0.7,
+    `maxTokens` INTEGER NOT NULL DEFAULT 1024,
+    `enabledTools` TEXT NULL,
+    `isActive` BOOLEAN NOT NULL DEFAULT true,
+    `isDefault` BOOLEAN NOT NULL DEFAULT false,
+    `createdById` VARCHAR(36) NOT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+    `deletedAt` DATETIME(3) NULL,
+
+    INDEX `agents_isActive_idx`(`isActive`),
+    INDEX `agents_isDefault_idx`(`isDefault`),
+    INDEX `agents_createdById_idx`(`createdById`),
+    INDEX `agents_deletedAt_idx`(`deletedAt`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `ai_usages` (
+    `id` VARCHAR(36) NOT NULL,
+    `agentId` VARCHAR(36) NOT NULL,
+    `customerId` VARCHAR(36) NULL,
+    `interactionId` VARCHAR(36) NULL,
+    `provider` ENUM('CLAUDE', 'OPENAI', 'GEMINI') NOT NULL,
+    `model` VARCHAR(80) NOT NULL,
+    `promptTokens` INTEGER NOT NULL,
+    `completionTokens` INTEGER NOT NULL,
+    `totalTokens` INTEGER NOT NULL,
+    `costUsd` DECIMAL(10, 6) NOT NULL,
+    `costBrl` DECIMAL(10, 4) NOT NULL,
+    `latencyMs` INTEGER NOT NULL,
+    `source` VARCHAR(30) NOT NULL DEFAULT 'conversation',
+    `errorMessage` TEXT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    INDEX `ai_usages_agentId_idx`(`agentId`),
+    INDEX `ai_usages_customerId_idx`(`customerId`),
+    INDEX `ai_usages_provider_idx`(`provider`),
+    INDEX `ai_usages_createdAt_idx`(`createdAt`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `agent_tool_calls` (
+    `id` VARCHAR(36) NOT NULL,
+    `agentId` VARCHAR(36) NOT NULL,
+    `customerId` VARCHAR(36) NULL,
+    `interactionId` VARCHAR(36) NULL,
+    `toolName` VARCHAR(80) NOT NULL,
+    `arguments` LONGTEXT NOT NULL,
+    `result` LONGTEXT NULL,
+    `succeeded` BOOLEAN NOT NULL DEFAULT false,
+    `errorMessage` TEXT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    INDEX `agent_tool_calls_agentId_idx`(`agentId`),
+    INDEX `agent_tool_calls_customerId_idx`(`customerId`),
+    INDEX `agent_tool_calls_toolName_idx`(`toolName`),
+    INDEX `agent_tool_calls_createdAt_idx`(`createdAt`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 -- AddForeignKey
 ALTER TABLE `users` ADD CONSTRAINT `users_supervisorId_fkey` FOREIGN KEY (`supervisorId`) REFERENCES `users`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
@@ -276,6 +348,9 @@ ALTER TABLE `refresh_tokens` ADD CONSTRAINT `refresh_tokens_userId_fkey` FOREIGN
 
 -- AddForeignKey
 ALTER TABLE `customers` ADD CONSTRAINT `customers_salespersonId_fkey` FOREIGN KEY (`salespersonId`) REFERENCES `users`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `customers` ADD CONSTRAINT `customers_agentId_fkey` FOREIGN KEY (`agentId`) REFERENCES `agents`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `customer_transfers` ADD CONSTRAINT `customer_transfers_customerId_fkey` FOREIGN KEY (`customerId`) REFERENCES `customers`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
@@ -318,3 +393,15 @@ ALTER TABLE `message_templates` ADD CONSTRAINT `message_templates_createdById_fk
 
 -- AddForeignKey
 ALTER TABLE `notifications` ADD CONSTRAINT `notifications_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `agents` ADD CONSTRAINT `agents_createdById_fkey` FOREIGN KEY (`createdById`) REFERENCES `users`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `ai_usages` ADD CONSTRAINT `ai_usages_agentId_fkey` FOREIGN KEY (`agentId`) REFERENCES `agents`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `ai_usages` ADD CONSTRAINT `ai_usages_customerId_fkey` FOREIGN KEY (`customerId`) REFERENCES `customers`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `agent_tool_calls` ADD CONSTRAINT `agent_tool_calls_agentId_fkey` FOREIGN KEY (`agentId`) REFERENCES `agents`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;

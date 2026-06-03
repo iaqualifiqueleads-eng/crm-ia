@@ -43,4 +43,21 @@ export class SchedulerService implements OnApplicationBootstrap {
 
     this.logger.log('Jobs cron registrados: replenishment 09:00, overdue 09:15');
   }
+  async triggerReplenishmentNow(): Promise<void> {
+    await this.replenishment.add(JOBS.DAILY_SCAN, {}, {
+      jobId: `manual-replenishment-${Date.now()}`,
+      removeOnComplete: 10,
+      removeOnFail: 10,
+    });
+    this.logger.log('Replenishment disparado manualmente');
+  }
+  
+  async triggerOverdueNow(): Promise<void> {
+    await this.overdue.add(JOBS.DAILY_OVERDUE, {}, {
+      jobId: `manual-overdue-${Date.now()}`,
+      removeOnComplete: 10,
+      removeOnFail: 10,
+    });
+    this.logger.log('Overdue escalation disparado manualmente');
+  }
 }

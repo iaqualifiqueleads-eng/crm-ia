@@ -36,6 +36,6 @@ import { QUEUES } from './workers.types';
     OverdueEscalationWorker,
     SchedulerService,
   ],
-  exports: [BullModule],
+  exports: [BullModule, SchedulerService],
 })
 export class WorkersModule {}
