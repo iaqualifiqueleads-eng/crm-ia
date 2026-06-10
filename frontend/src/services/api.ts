@@ -2,7 +2,7 @@ import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '@/store/auth.store';
 
 export const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL ?? '/api',
   timeout: 30_000,
 });
 
@@ -26,7 +26,7 @@ async function refreshAccessToken(): Promise<string> {
   const refreshToken = useAuthStore.getState().refreshToken;
   if (!refreshToken) throw new Error('No refresh token');
 
-  const { data } = await axios.post('/api/auth/refresh', { refreshToken });
+  const { data } = await axios.post(`${import.meta.env.VITE_API_BASE_URL ?? '/api'}/auth/refresh`, { refreshToken });
 
   useAuthStore.getState().setSession({
     accessToken: data.accessToken,
