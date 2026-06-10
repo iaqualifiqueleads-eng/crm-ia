@@ -17,6 +17,7 @@ import { QUEUES } from './workers.types';
         connection: {
           host: config.getOrThrow<string>('REDIS_HOST'),
           port: config.getOrThrow<number>('REDIS_PORT'),
+          password: config.get<string>('REDIS_PASSWORD'),
         },
         defaultJobOptions: {
           removeOnComplete: { count: 1000, age: 60 * 60 * 24 * 7 }, // 7 dias
