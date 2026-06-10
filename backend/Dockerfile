@@ -8,7 +8,7 @@
   
   COPY . .
   RUN npx prisma generate
-  RUN npm run build
+  RUN rm -rf dist && npx @nestjs/cli build
   
   # ---- Stage 2: Production ----
   FROM node:20-alpine AS runner
