@@ -30,6 +30,7 @@ export class WhatsAppController {
     @Body() payload: WahaWebhookDto,
     @Headers('x-webhook-secret') incomingSecret?: string,
   ) {
+    console.log('[payload] => ', payload);
     if (this.webhookSecret && incomingSecret !== this.webhookSecret) {
       return { ok: false, reason: 'invalid-secret' };
     }
