@@ -140,18 +140,19 @@ export class WhatsAppWebhookService {
   private parseMessage(payload: any): ParsedMessage | null {
     const data = payload?.payload;
     if (!data) return null;
-  
-    // Se o 'from' termina em @lid, usa o 'sender' que contém o número real
-    const rawFrom = String(data.from || '');
-    const rawSender = String(data.sender || '');
-    
-    let fromRaw = rawFrom;
-    if (rawFrom.endsWith('@lid') && rawSender) {
-      fromRaw = rawSender;
+
+    let fromRaw = String(data.from || '');
+
+    // Se o 'from' termina em @lid, busca o número real em _data.key.remoteJidAlt
+    if (fromRaw.endsWith('@lid')) {
+      const remoteJidAlt = data?._data?.key?.remoteJidAlt;
+      if (remoteJidAlt) {
+        fromRaw = remoteJidAlt; // ex: "5527998985635@s.whatsapp.net"
+      }
     }
-  
+
     const fromNumber = fromRaw.split('@')[0];
-  
+
     return {
       externalId: String(data.id || `waha_${Date.now()}`),
       fromNumber,
