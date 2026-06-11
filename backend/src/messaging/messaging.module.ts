@@ -1,38 +1,37 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { MockMessagingService } from './mock-messaging.service';
-import { EvolutionWhatsAppService } from '../whatsapp/evolution.service';
+import { WahaWhatsAppService } from '../whatsapp/waha.service';
 import { MESSAGING_PROVIDER, MessagingProvider } from './messaging.types';
 
 /**
  * Resolução dinâmica do provider de mensagens:
  *
- *  - Se EVOLUTION_URL + EVOLUTION_API_KEY + EVOLUTION_INSTANCE estão setados,
- *    usa EvolutionWhatsAppService.
+ *  - Se WAHA_URL + WAHA_API_KEY estão setados,
+ *    usa WahaWhatsAppService.
  *  - Caso contrário, cai pro MockMessagingService (logs only, útil em dev).
  */
 @Global()
 @Module({
   providers: [
     MockMessagingService,
-    EvolutionWhatsAppService,
+    WahaWhatsAppService,
     {
       provide: MESSAGING_PROVIDER,
-      inject: [ConfigService, EvolutionWhatsAppService, MockMessagingService],
+      inject: [ConfigService, WahaWhatsAppService, MockMessagingService],
       useFactory: (
         config: ConfigService,
-        evo: EvolutionWhatsAppService,
+        waha: WahaWhatsAppService,
         mock: MockMessagingService,
       ): MessagingProvider => {
         const ready = !!(
-          config.get<string>('EVOLUTION_URL') &&
-          config.get<string>('EVOLUTION_API_KEY') &&
-          config.get<string>('EVOLUTION_INSTANCE')
+          config.get<string>('WAHA_URL') &&
+          config.get<string>('WAHA_API_KEY')
         );
-        return ready ? evo : mock;
+        return ready ? waha : mock;
       },
     },
   ],
-  exports: [MESSAGING_PROVIDER, MockMessagingService, EvolutionWhatsAppService],
+  exports: [MESSAGING_PROVIDER, MockMessagingService, WahaWhatsAppService],
 })
 export class MessagingModule {}

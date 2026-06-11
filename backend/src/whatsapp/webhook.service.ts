@@ -27,14 +27,15 @@ export class WhatsAppWebhookService {
   ) { }
 
   /**
-   * Entry point — recebe qualquer payload da Evolution e processa
-   * só os eventos relevantes (messages.upsert).
+   * Entry point — recebe qualquer payload da WAHA e processa
+   * só os eventos relevantes (message, message.any).
    */
   async ingest(payload: any): Promise<{ accepted: boolean; reason?: string }> {
-    const event: string = payload?.event ?? payload?.type ?? '';
+    const event: string = payload?.event ?? '';
 
-    if (!event.includes('messages.upsert') && !event.includes('MESSAGES_UPSERT')) {
-      this.logger.debug(`Ignorando evento: ${event}`);
+    // WAHA envia 'message' ou 'message.any' para mensagens de chat
+    if (event !== 'message' && event !== 'message.any') {
+      this.logger.debug(`Ignorando evento WAHA: ${event}`);
       return { accepted: false, reason: 'event-not-supported' };
     }
 
@@ -124,49 +125,40 @@ export class WhatsAppWebhookService {
   }
 
   // ---------------------------------------------------------
-  // Parsing — Evolution tem 2 formatos comuns
+  // Parsing — WAHA tem formato consistente
   // ---------------------------------------------------------
+  /**
+   * Refatorado para WAHA
+   * 
+   * WAHA coloca os dados da mensagem no campo 'payload':
+   * - payload.id -> ID da mensagem
+   * - payload.from -> número@c.us
+   * - payload.body -> texto da mensagem
+   * - payload.fromMe -> boolean
+   * - payload.timestamp -> unix timestamp (segundos)
+   */
   private parseMessage(payload: any): ParsedMessage | null {
-    const data = payload?.data ?? payload;
-
-    // Caso 1: messages.upsert do baileys (formato Evolution v2)
-    //   data.key.remoteJid, data.key.id, data.key.fromMe
-    //   data.message.conversation OU data.message.extendedTextMessage.text
-    //   data.messageTimestamp
-    if (data?.key) {
-      const remoteJid: string = data.key.remoteJid ?? '';
-      const fromNumber = remoteJid.split('@')[0];
-      const text =
-        data.message?.conversation ??
-        data.message?.extendedTextMessage?.text ??
-        data.message?.imageMessage?.caption ??
-        '';
-
-      return {
-        externalId: String(data.key.id ?? `evo_${Date.now()}`),
-        fromNumber,
-        text,
-        fromMe: !!data.key.fromMe,
-        timestamp: data.messageTimestamp ? new Date(Number(data.messageTimestamp) * 1000) : undefined,
-      };
+    const data = payload?.payload;
+    if (!data) {
+      return null;
     }
 
-    // Caso 2: payload mais "limpo" que algumas instâncias enviam
-    if (data?.from && (data?.body || data?.text)) {
-      return {
-        externalId: String(data.id ?? `evo_${Date.now()}`),
-        fromNumber: String(data.from).replace(/\D/g, ''),
-        text: data.body ?? data.text ?? '',
-        fromMe: !!data.fromMe,
-      };
-    }
-
-    return null;
+    // Extrai o número do formato 'número@c.us'
+    const fromNumber = String(data.from || '').split('@')[0];
+    
+    // Retorna a mensagem parseada
+    return {
+      externalId: String(data.id || `waha_${Date.now()}`),
+      fromNumber,
+      text: data.body ?? '',
+      fromMe: !!data.fromMe,
+      timestamp: data.timestamp ? new Date(data.timestamp * 1000) : undefined,
+    };
   }
 
   /**
    * Encontra cliente cujo whatsapp/phone bate com o número recebido.
-   * O número da Evolution vem só com dígitos (ex: 5527999998888).
+   * O número da WAHA vem só com dígitos (ex: 5527999998888).
    */
   private async findCustomerByNumber(number: string) {
     const digits = number.replace(/\D/g, '');

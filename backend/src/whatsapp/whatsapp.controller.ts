@@ -3,6 +3,8 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { Public } from '../common/decorators/public.decorator';
 import { WhatsAppWebhookService } from './webhook.service';
+import { WahaWebhookDto } from './dto/waha-webhook.dto';
+
 
 @ApiTags('WhatsApp')
 @Controller('whatsapp')
@@ -13,19 +15,19 @@ export class WhatsAppController {
     private readonly service: WhatsAppWebhookService,
     config: ConfigService,
   ) {
-    this.webhookSecret = config.get<string>('EVOLUTION_WEBHOOK_SECRET') ?? '';
+    this.webhookSecret = config.get<string>('WAHA_WEBHOOK_SECRET') ?? '';
   }
 
   /**
-   * Webhook PÚBLICO chamado pela Evolution.
+   * Webhook PÚBLICO chamado pela WAHA.
    * Para segurança mínima, validamos um header `x-webhook-secret` se
-   * EVOLUTION_WEBHOOK_SECRET estiver definido.
+   * WAHA_WEBHOOK_SECRET estiver definido.
    */
   @Public()
   @Post('webhook')
-  @ApiOperation({ summary: 'Webhook da Evolution API — recebe mensagens entrantes' })
+  @ApiOperation({ summary: 'Webhook da WAHA — recebe mensagens entrantes' })
   async webhook(
-    @Body() payload: any,
+    @Body() payload: WahaWebhookDto,
     @Headers('x-webhook-secret') incomingSecret?: string,
   ) {
     if (this.webhookSecret && incomingSecret !== this.webhookSecret) {

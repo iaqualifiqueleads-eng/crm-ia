@@ -1,5 +1,4 @@
-# Docker Compose lê automaticamente o arquivo .env no MESMO diretório
-# deste docker-compose.yml. As variáveis abaixo vêm de lá.
+version: '3.8'
 
 services:
   # =========================================================
@@ -13,35 +12,38 @@ services:
       --character-set-server=utf8mb4
       --collation-server=utf8mb4_unicode_ci
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-crm_db}
-      MYSQL_USER: ${MYSQL_USER:-crm_user}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-crm_pass}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    # NÃO expor porta para a rede externa
+    # Se precisar acessar localmente: use 127.0.0.1:3306
     ports:
-      - '3306:3306'
+      - '127.0.0.1:3306:3306'
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test:
-        - CMD-SHELL
-        - mysqladmin ping -h 127.0.0.1 -u root -p"$$MYSQL_ROOT_PASSWORD" --silent
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-u', 'root', '-p${MYSQL_ROOT_PASSWORD}']
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 5
       start_period: 30s
     networks:
       - crm_network
 
   # =========================================================
-  # Redis — usado por (a) BullMQ do NestJS (b) cache da Evolution
+  # Redis — usado por BullMQ do NestJS
   # =========================================================
   redis:
     image: redis:7-alpine
     container_name: crm_redis
     restart: unless-stopped
     command: redis-server --appendonly yes
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    # NÃO expor porta para a rede externa
     ports:
-      - '6379:6379'
+      - '127.0.0.1:6379:6379'
     volumes:
       - redis_data:/data
     healthcheck:
@@ -53,118 +55,94 @@ services:
       - crm_network
 
   # =========================================================
-  # phpMyAdmin — interface web pro MySQL
+  # WAHA — WhatsApp HTTP API
   # =========================================================
-  phpmyadmin:
-    image: phpmyadmin:5-apache
-    container_name: crm_phpmyadmin
+  waha:
+    image: devlikeapro/waha:latest
+    container_name: crm_waha
     restart: unless-stopped
-    environment:
-      PMA_HOST: mysql
-      PMA_PORT: 3306
-      PMA_USER: root
-      PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass}
-      UPLOAD_LIMIT: 64M
     ports:
-      - '8080:80'
+      - '3000:3000'
+    environment:
+      # Engine do WhatsApp
+      WHATSAPP_DEFAULT_ENGINE: WEBJS
+      
+      # Chave de API (OBRIGATÓRIA no .env)
+      WAHA_API_KEY: ${WAHA_API_KEY}
+      
+      # QR Code no console (útil para debug)
+      WAHA_PRINT_QR: 'true'
+      
+      # Nível de log
+      WAHA_LOG_LEVEL: info
+      
+      # Armazenamento de sessões
+      WAHA_SESSION_STORE_TYPE: FILE
+      
+      # Credenciais do Dashboard (OBRIGATÓRIAS no .env)
+      WAHA_DASHBOARD_USERNAME: ${WAHA_DASHBOARD_USERNAME}
+      WAHA_DASHBOARD_PASSWORD: ${WAHA_DASHBOARD_PASSWORD}
+      
+      # Credenciais do Swagger (OBRIGATÓRIAS no .env)
+      WHATSAPP_SWAGGER_USERNAME: ${WHATSAPP_SWAGGER_USERNAME}
+      WHATSAPP_SWAGGER_PASSWORD: ${WHATSAPP_SWAGGER_PASSWORD}
+    
+    volumes:
+      - waha_sessions:/app/.sessions
+    
+    depends_on:
+      redis:
+        condition: service_healthy
+    
+    networks:
+      - crm_network
+
+  # =========================================================
+  # BACKEND — NestJS
+  # =========================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: crm_backend
+    restart: unless-stopped
+    ports:
+      - '3001:3000'
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      PORT: ${PORT}
+      FRONTEND_URL: ${FRONTEND_URL}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN}
+      BCRYPT_SALT_ROUNDS: ${BCRYPT_SALT_ROUNDS}
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      WAHA_URL: ${WAHA_URL}
+      WAHA_API_KEY: ${WAHA_API_KEY}
+      WAHA_WEBHOOK_SECRET: ${WAHA_WEBHOOK_SECRET}
+      # ... outras variáveis do .env
     depends_on:
       mysql:
         condition: service_healthy
-    networks:
-      - crm_network
-
-  # =========================================================
-  # Postgres — usado APENAS pela Evolution API
-  # (Evolution prefere Postgres ao MySQL)
-  # =========================================================
-  evolution_postgres:
-    image: postgres:16-alpine
-    container_name: crm_evolution_postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: evolution
-      POSTGRES_PASSWORD: ${EVOLUTION_DB_PASSWORD:-evolutionpass}
-      POSTGRES_DB: evolution
-    volumes:
-      - evolution_postgres_data:/var/lib/postgresql/data
-    ports:
-      - '5432:5432' 
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U evolution']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - crm_network
-
-  # =========================================================
-  # Evolution API — gateway WhatsApp não-oficial
-  # =========================================================
-  # Acesso: http://localhost:8085/manager
-  # Para conectar um chip, criar uma instância pela API e
-  # escanear o QR code com o WhatsApp do número.
-  # =========================================================
-  evolution:
-    image: atendai/evolution-api:latest
-    container_name: crm_evolution
-    restart: unless-stopped
-    ports:
-      - '8085:8080'
-    environment:
-      # --- Servidor ---
-      SERVER_URL: http://host.docker.internal:8085
-      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY:-changeme-evolution-key}
-
-      CONFIG_SESSION_PHONE_CLIENT: "Evolution CRM"
-      CONFIG_SESSION_PHONE_NAME: "Evolution"
-      WA_DEFAULT_TIMEOUT_MS: "60000"
-
-      PROXY_AGENT: ""
-      NODE_OPTIONS: "--dns-result-order=ipv4first"
-
-      BAILEYS_VERSION: "2.3000.1023480"
-      WA_BUSINESS_TOKEN_WEBHOOK_VALIDATE: "false"
-      CONNECT_TIMEOUT_MS: "60000"
-
-      # --- Banco (Postgres dedicado) ---
-      DATABASE_ENABLED: 'true'
-      DATABASE_PROVIDER: postgresql
-      DATABASE_CONNECTION_URI: postgresql://evolution:${EVOLUTION_DB_PASSWORD:-evolutionpass}@evolution_postgres:5432/evolution?schema=public
-      DATABASE_CONNECTION_CLIENT_NAME: evolution_crm
-
-      # --- Cache no Redis compartilhado ---
-      CACHE_REDIS_ENABLED: 'true'
-      CACHE_REDIS_URI: redis://redis:6379/1
-      CACHE_REDIS_PREFIX_KEY: evolution
-
-      # --- Webhook global → aponta pro backend NestJS ---
-      # IMPORTANTE: dentro da rede docker, o backend está em host.docker.internal
-      # ou no IP do gateway. Em dev, deixe vazio aqui e configure por
-      # instância depois (vide README).
-      WEBHOOK_GLOBAL_ENABLED: 'false'
-
-      # --- Logs ---
-      LOG_LEVEL: ERROR,WARN,INFO,DEBUG,VERBOSE,LOG
-      LOG_COLOR: 'true'
-
-      # --- QR Code ---
-      QRCODE_LIMIT: 10
-    volumes:
-      - evolution_instances:/evolution/instances
-    depends_on:
-      evolution_postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
+      waha:
+        condition: service_started
+    volumes:
+      - ./backend/src:/app/src  # Hot reload em desenvolvimento
     networks:
       - crm_network
 
 volumes:
   mysql_data:
   redis_data:
-  evolution_postgres_data:
-  evolution_instances:
+  waha_sessions:
 
 networks:
   crm_network:
     driver: bridge
+
+
