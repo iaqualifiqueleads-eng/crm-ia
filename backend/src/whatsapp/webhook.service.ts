@@ -139,14 +139,19 @@ export class WhatsAppWebhookService {
    */
   private parseMessage(payload: any): ParsedMessage | null {
     const data = payload?.payload;
-    if (!data) {
-      return null;
-    }
-
-    // Extrai o número do formato 'número@c.us'
-    const fromNumber = String(data.from || '').split('@')[0];
+    if (!data) return null;
+  
+    // Se o 'from' termina em @lid, usa o 'sender' que contém o número real
+    const rawFrom = String(data.from || '');
+    const rawSender = String(data.sender || '');
     
-    // Retorna a mensagem parseada
+    let fromRaw = rawFrom;
+    if (rawFrom.endsWith('@lid') && rawSender) {
+      fromRaw = rawSender;
+    }
+  
+    const fromNumber = fromRaw.split('@')[0];
+  
     return {
       externalId: String(data.id || `waha_${Date.now()}`),
       fromNumber,
