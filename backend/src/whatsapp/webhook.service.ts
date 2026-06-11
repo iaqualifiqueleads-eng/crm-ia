@@ -147,7 +147,7 @@ export class WhatsAppWebhookService {
     if (fromRaw.endsWith('@lid')) {
       const remoteJidAlt = data?._data?.key?.remoteJidAlt;
       if (remoteJidAlt) {
-        fromRaw = remoteJidAlt; // ex: "5527998985635@s.whatsapp.net"
+        fromRaw = remoteJidAlt; // ex: "5527998955699@s.whatsapp.net"
       }
     }
 
