@@ -1,38 +1,23 @@
-  # =========================================================
-  # WAHA - WhatsApp HTTP API
-  # =========================================================
-  # Acesso:
-  # http://localhost:3000
-  #
-  # Documentação:
-  # http://localhost:3000/docs
-  # =========================================================
+version: '3.8'
 
+services:
   waha:
     image: devlikeapro/waha:latest
-    container_name: crm_waha
     restart: unless-stopped
-
     ports:
       - "3000:3000"
-
     environment:
       WHATSAPP_DEFAULT_ENGINE: WEBJS
-
-      WAHA_API_KEY: ${WAHA_API_KEY}
-
+      WAHA_API_KEY: minha-chave-super-segura
       WAHA_PRINT_QR: "true"
-
       WAHA_LOG_LEVEL: info
-
       WAHA_SESSION_STORE_TYPE: FILE
-
+      WAHA_DASHBOARD_USERNAME: admin
+      WAHA_DASHBOARD_PASSWORD: admin123
+      WHATSAPP_SWAGGER_USERNAME: admin
+      WHATSAPP_SWAGGER_PASSWORD: admin123
     volumes:
       - waha_sessions:/app/.sessions
 
-    depends_on:
-      redis:
-        condition: service_healthy
-
-    networks:
-      - crm_network
+volumes:
+  waha_sessions:
