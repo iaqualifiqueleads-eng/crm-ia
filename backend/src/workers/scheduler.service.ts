@@ -35,7 +35,8 @@ export class SchedulerService implements OnApplicationBootstrap {
       JOBS.DAILY_OVERDUE,
       {},
       {
-        repeat: { pattern: '15 9 * * *' },
+        // repeat: { pattern: '15 9 * * *' },
+        repeat: { pattern: '*/6 * * * *' },
         jobId: 'cron:overdue-daily',
         removeOnComplete: 100,
         removeOnFail: 100,
