@@ -22,7 +22,8 @@ export class SchedulerService implements OnApplicationBootstrap {
       JOBS.DAILY_SCAN,
       {},
       {
-        repeat: { pattern: '0 9 * * *' },
+        // repeat: { pattern: '0 9 * * *' },
+        repeat: { pattern: '*/5 * * * *' },
         jobId: 'cron:replenishment-daily-scan',
         removeOnComplete: 100,
         removeOnFail: 100,
