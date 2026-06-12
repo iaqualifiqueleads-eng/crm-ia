@@ -23,7 +23,7 @@ export class SchedulerService implements OnApplicationBootstrap {
       {},
       {
         // repeat: { pattern: '0 9 * * *' },
-        repeat: { pattern: '*/5 * * * *' },
+        repeat: { pattern: '0 13 * * *' },
         jobId: 'cron:replenishment-daily-scan',
         removeOnComplete: 100,
         removeOnFail: 100,
@@ -36,7 +36,7 @@ export class SchedulerService implements OnApplicationBootstrap {
       {},
       {
         // repeat: { pattern: '15 9 * * *' },
-        repeat: { pattern: '*/6 * * * *' },
+        repeat: { pattern: '15 13 * * *' },
         jobId: 'cron:overdue-daily',
         removeOnComplete: 100,
         removeOnFail: 100,
