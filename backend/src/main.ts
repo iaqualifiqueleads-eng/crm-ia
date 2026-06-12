@@ -39,22 +39,22 @@ async function bootstrap() {
   });
 
   // Swagger — só em dev
-  if (nodeEnv !== 'production') {
-    const swaggerConfig = new DocumentBuilder()
-      .setTitle('CRM B2B — API')
-      .setDescription('CRM para gestão de carteira B2B com previsão de recompra')
-      .setVersion('0.1.0')
-      .addBearerAuth(
-        { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
-        'access-token',
-      )
-      .build();
-    const document = SwaggerModule.createDocument(app, swaggerConfig);
-    SwaggerModule.setup('api/docs', app, document, {
-      swaggerOptions: { persistAuthorization: true },
-    });
-    Logger.log(`Swagger disponível em http://localhost:${port}/api/docs`, 'Bootstrap');
-  }
+  // if (nodeEnv !== 'production') {
+  //   const swaggerConfig = new DocumentBuilder()
+  //     .setTitle('CRM B2B — API')
+  //     .setDescription('CRM para gestão de carteira B2B com previsão de recompra')
+  //     .setVersion('0.1.0')
+  //     .addBearerAuth(
+  //       { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+  //       'access-token',
+  //     )
+  //     .build();
+  //   const document = SwaggerModule.createDocument(app, swaggerConfig);
+  //   SwaggerModule.setup('api/docs', app, document, {
+  //     swaggerOptions: { persistAuthorization: true },
+  //   });
+  //   Logger.log(`Swagger disponível em http://localhost:${port}/api/docs`, 'Bootstrap');
+  // }
 
   await app.listen(port);
   Logger.log(`API rodando em http://localhost:${port}/api`, 'Bootstrap');
