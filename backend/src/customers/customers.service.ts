@@ -1,33 +1,27 @@
-import {
-  Injectable,
-  BadRequestException,
-  ForbiddenException,
-  NotFoundException,
-  ConflictException,
-} from '@nestjs/common';
+import { Injectable, BadRequestException, ForbiddenException, NotFoundException, ConflictException } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { Prisma, UserRole, ForecastMode } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ForecastService } from '../forecast/forecast.service';
+import { QUEUES, JOBS } from '../workers/workers.types';
 import {
-  CreateCustomerDto,
-  UpdateCustomerDto,
-  TransferCustomerDto,
-  CustomerFiltersDto,
+  CreateCustomerDto, UpdateCustomerDto, TransferCustomerDto, CustomerFiltersDto,
 } from './dto/customers.dto';
 import { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { getVisibleSalespersonIds, canManageUser } from '../common/scope.util';
 import { buildPaginatedResult } from '../common/dto/pagination.dto';
+
+const FIRST_CONTACT_TEMPLATE_ID = '93b6f5db-a0c4-44e7-8552-8cb6ec34b1b5';
 
 @Injectable()
 export class CustomersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly forecast: ForecastService,
+    @InjectQueue(QUEUES.REPLENISHMENT) private readonly replenishmentQueue: Queue,
   ) {}
 
-  // -------------------------------------------------------
-  // CREATE
-  // -------------------------------------------------------
   async create(actor: CurrentUserPayload, dto: CreateCustomerDto) {
     const salespersonId = await this.resolveSalespersonId(actor, dto.salespersonId);
 
@@ -70,11 +64,28 @@ export class CustomersService {
       },
     });
 
-    // Já tenta calcular previsão — ainda sem pedidos vai zerar, mas mantém o cache consistente
     await this.forecast.recalculateForCustomer(customer.id);
+
+    // Dispara primeiro contato imediatamente se o cliente tem whatsapp
+    if (customer.whatsapp) {
+      await this.replenishmentQueue.add(
+        JOBS.SEND_REMINDER,
+        {
+          customerId: customer.id,
+          templateId: FIRST_CONTACT_TEMPLATE_ID,
+          automationRef: `FIRST_CONTACT_${customer.id}`,
+        },
+        {
+          jobId: `first-contact-${customer.id}`,
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 5_000 },
+        },
+      );
+    }
 
     return this.findOneRaw(customer.id);
   }
+
 
   // -------------------------------------------------------
   // LIST
