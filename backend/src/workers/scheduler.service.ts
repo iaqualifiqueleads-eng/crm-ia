@@ -22,8 +22,7 @@ export class SchedulerService implements OnApplicationBootstrap {
       JOBS.DAILY_SCAN,
       {},
       {
-        // repeat: { pattern: '0 9 * * *' },
-        repeat: { pattern: '10 19 * * *' },
+        repeat: { pattern: '0 10 * * *' },
         jobId: 'cron:replenishment-daily-scan',
         removeOnComplete: 100,
         removeOnFail: 100,
@@ -35,15 +34,14 @@ export class SchedulerService implements OnApplicationBootstrap {
       JOBS.DAILY_OVERDUE,
       {},
       {
-        // repeat: { pattern: '15 9 * * *' },
-        repeat: { pattern: '15 19 * * *' },
+        repeat: { pattern: '15 10 * * *' },
         jobId: 'cron:overdue-daily',
         removeOnComplete: 100,
         removeOnFail: 100,
       },
     );
 
-    this.logger.log('Jobs cron registrados: replenishment 09:00, overdue 09:15');
+    this.logger.log('Jobs cron registrados: replenishment 10:00, overdue 10:15');
   }
   async triggerReplenishmentNow(): Promise<void> {
     await this.replenishment.add(JOBS.DAILY_SCAN, {}, {

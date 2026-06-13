@@ -65,7 +65,7 @@ services:
       - '3000:3000'
     environment:
       # Engine do WhatsApp
-      WHATSAPP_DEFAULT_ENGINE: WEBJS
+      WHATSAPP_DEFAULT_ENGINE: NOWEB
       
       # Chave de API (OBRIGATÓRIA no .env)
       WAHA_API_KEY: ${WAHA_API_KEY}
