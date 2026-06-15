@@ -19,6 +19,7 @@ const triggers: Array<{ value: TemplateTrigger; label: string; description: stri
   { value: 'REPLENISHMENT_OVERDUE', label: 'Cliente atrasado', description: 'Cliente passou do prazo previsto' },
   { value: 'FIRST_CONTACT', label: 'Primeiro contato', description: 'Mensagem inicial após cadastro' },
   { value: 'CUSTOM',  label: 'Personalizado', description: 'Disparo manual ou cenário customizado' },
+  { value: 'WELL_STOCKED', label: 'Cliente bem estocado', description: 'Disparado quando o agente identifica que o cliente está bem estocado' },
 ];
 
 const placeholderTokens = [

@@ -364,6 +364,7 @@ enum TemplateTrigger {
   RETRY_3H
   RETRY_24H
   CUSTOM
+  WELL_STOCKED 
 }
 
 enum NotificationSeverity {

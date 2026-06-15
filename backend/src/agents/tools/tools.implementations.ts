@@ -385,3 +385,61 @@ export class MarkNotInterestedTool implements AgentTool {
     };
   }
 }
+// ====================================================================
+// 7) MARK_WELL_STOCKED
+// ====================================================================
+
+@Injectable()
+export class MarkWellStockedTool implements AgentTool {
+  readonly name = 'mark_well_stocked';
+  readonly description =
+    'Use quando o cliente disser que está bem estocado, que não precisa de nada agora, ou que já tem produto suficiente. Agenda automaticamente um novo contato para daqui 20 dias e encerra a conversa educadamente.';
+  readonly parameters = {
+    type: 'object' as const,
+    properties: {
+      reason: {
+        type: 'string',
+        description: 'O que o cliente disse (ex: "cliente disse que está com estoque para 3 semanas")',
+      },
+    },
+    required: ['reason'],
+  };
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly forecast: ForecastService,
+  ) {}
+
+  async execute(args: any, ctx: ToolExecutionContext): Promise<ToolExecutionResult> {
+    const nextContact = new Date();
+    nextContact.setDate(nextContact.getDate() + 20);
+
+    await this.prisma.customer.update({
+      where: { id: ctx.customerId },
+      data: {
+        forecastMode: ForecastMode.MANUAL,
+        manualIntervalDays: 20,
+        nextReplenishmentAt: nextContact,
+      },
+    });
+
+    await this.prisma.customerEvent.create({
+      data: {
+        customerId: ctx.customerId,
+        type: 'FORECAST_UPDATED_BY_AI',
+        title: 'Cliente bem estocado — próximo contato em 20 dias',
+        description: String(args.reason).slice(0, 500),
+      },
+    });
+
+    if (ctx.source === 'conversation') {
+      await this.forecast.recalculateForCustomer(ctx.customerId);
+    }
+
+    return {
+      summary: `Cliente bem estocado. Próximo contato agendado para ${nextContact.toLocaleDateString('pt-BR')}`,
+      data: { nextReplenishmentAt: nextContact.toISOString(), intervalDays: 20 },
+      endsConversation: true,
+    };
+  }
+}

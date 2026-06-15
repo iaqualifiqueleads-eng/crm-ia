@@ -10,6 +10,7 @@ import {
   TransferToHumanTool,
   UpdateReplenishmentForecastTool,
   MarkNotInterestedTool,
+  MarkWellStockedTool,
 } from './tools/tools.implementations';
 
 @Global()
@@ -25,6 +26,7 @@ import {
     TransferToHumanTool,
     UpdateReplenishmentForecastTool,
     MarkNotInterestedTool,
+    MarkWellStockedTool
   ],
   exports: [AgentsService, AgentRuntimeService, ToolRegistry],
 })

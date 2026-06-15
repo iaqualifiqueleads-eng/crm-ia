@@ -55,7 +55,7 @@ export interface Task {
 
 export type TemplateTrigger =
   | 'FIRST_CONTACT' | 'REPLENISHMENT_REMINDER' | 'REPLENISHMENT_OVERDUE'
-  | 'RETRY_1H' | 'RETRY_3H' | 'RETRY_24H' | 'CUSTOM';
+  | 'RETRY_1H' | 'RETRY_3H' | 'RETRY_24H' | 'CUSTOM' | 'WELL_STOCKED';
 
 export interface MessageTemplate {
   id: string;

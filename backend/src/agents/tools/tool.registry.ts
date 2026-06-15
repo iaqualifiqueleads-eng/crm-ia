@@ -9,6 +9,7 @@ import {
   TransferToHumanTool,
   UpdateReplenishmentForecastTool,
   MarkNotInterestedTool,
+  MarkWellStockedTool,
 } from './tools.implementations';
 
 @Injectable()
@@ -24,10 +25,11 @@ export class ToolRegistry {
     transferHuman: TransferToHumanTool,
     updateForecast: UpdateReplenishmentForecastTool,
     markNotInterested: MarkNotInterestedTool,
+    markWellStocked: MarkWellStockedTool,
   ) {
     const all = [
       registerOrder, scheduleTask, updateNotes,
-      transferHuman, updateForecast, markNotInterested,
+      transferHuman, updateForecast, markNotInterested, markWellStocked,
     ];
     for (const tool of all) {
       this.byName.set(tool.name, tool);
