@@ -86,6 +86,10 @@ services:
       # Credenciais do Swagger (OBRIGATÓRIAS no .env)
       WHATSAPP_SWAGGER_USERNAME: ${WHATSAPP_SWAGGER_USERNAME}
       WHATSAPP_SWAGGER_PASSWORD: ${WHATSAPP_SWAGGER_PASSWORD}
+
+      WHATSAPP_HOOK_EVENTS: message,session.status
+      WHATSAPP_HOOK_URL: https://clskwf33f0imzlqdgav7wt0t.2.25.194.252.sslip.io/api/whatsapp/webhook
+      WHATSAPP_HOOK_HMAC: secret_para_validar_entrada_de_mensagens
     
     volumes:
       - waha_sessions:/app/.sessions

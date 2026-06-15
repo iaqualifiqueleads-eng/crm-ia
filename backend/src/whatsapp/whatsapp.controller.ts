@@ -3,7 +3,8 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Public } from '../common/decorators/public.decorator';
 import { WhatsAppWebhookService } from './webhook.service';
 import { WahaWebhookDto } from './dto/waha-webhook.dto';
-import { WahaHmacGuard } from './guards/waha-hmac.guard';
+import { WahaHmacGuard } from '@/common/guards/waha-hmac.guard';
+
 
 @ApiTags('WhatsApp')
 @Controller('whatsapp')
