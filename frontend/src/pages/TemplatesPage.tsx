@@ -19,6 +19,7 @@ const triggerLabel: Record<TemplateTrigger, string> = {
   RETRY_3H: 'Retry · 3h',
   RETRY_24H: 'Retry · 24h',
   CUSTOM: 'Personalizado',
+  WELL_STOCKED: 'Estocado'
 };
 
 const triggerTone: Record<TemplateTrigger, 'champagne' | 'signal' | 'neutral' | 'forest'> = {
@@ -29,6 +30,7 @@ const triggerTone: Record<TemplateTrigger, 'champagne' | 'signal' | 'neutral' | 
   RETRY_24H: 'neutral',
   FIRST_CONTACT: 'forest',
   CUSTOM: 'neutral',
+  WELL_STOCKED: 'neutral'
 };
 
 export function TemplatesPage() {
