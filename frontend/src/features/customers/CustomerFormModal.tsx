@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
+import { Trash2 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input, Label, Select, Textarea } from '@/components/ui/Input';
 import {
   useCreateCustomer,
   useUpdateCustomer,
+  useDeleteCustomer,
   type CreateCustomerInput,
 } from '@/features/customers/useCustomers';
 import type { Customer, CustomerStatus, ForecastMode } from '@/types';
@@ -13,6 +15,7 @@ interface Props {
   open: boolean;
   onClose: () => void;
   customer?: Customer | null;
+  onDelete?: () => void;
 }
 
 const statusOptions: Array<{ value: CustomerStatus; label: string }> = [
@@ -29,15 +32,17 @@ const empty: CreateCustomerInput = {
   forecastMode: 'AUTO',
 };
 
-export function CustomerFormModal({ open, onClose, customer }: Props) {
+export function CustomerFormModal({ open, onClose, customer, onDelete }: Props) {
   const isEdit = !!customer;
   const create = useCreateCustomer();
   const update = useUpdateCustomer(customer?.id ?? '');
+  const deleteMutation = useDeleteCustomer();
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const [form, setForm] = useState<CreateCustomerInput>(empty);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) { setConfirmDelete(false); return; }
     setForm(customer ? {
       companyName: customer.companyName,
       tradeName: customer.tradeName ?? undefined,
@@ -73,6 +78,13 @@ export function CustomerFormModal({ open, onClose, customer }: Props) {
     } catch { /* erros tratados nos hooks */ }
   };
 
+  const handleDelete = async () => {
+    if (!customer) return;
+    await deleteMutation.mutateAsync(customer.id);
+    onClose();
+    onDelete?.();
+  };
+
   const loading = create.isPending || update.isPending;
 
   return (
@@ -84,6 +96,39 @@ export function CustomerFormModal({ open, onClose, customer }: Props) {
       size="lg"
       footer={
         <>
+          {isEdit && !confirmDelete && (
+            <Button
+              variant="ghost"
+              type="button"
+              className="mr-auto text-red-500 hover:text-red-600 hover:bg-red-50"
+              onClick={() => setConfirmDelete(true)}
+            >
+              <Trash2 className="w-4 h-4 mr-1.5" />
+              Excluir cliente
+            </Button>
+          )}
+          {isEdit && confirmDelete && (
+            <div className="mr-auto flex items-center gap-2">
+              <span className="text-sm text-red-600 font-medium">Confirmar exclusão?</span>
+              <Button
+                variant="ghost"
+                type="button"
+                size="sm"
+                onClick={() => setConfirmDelete(false)}
+              >
+                Não
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                className="bg-red-600 hover:bg-red-700 text-white"
+                loading={deleteMutation.isPending}
+                onClick={handleDelete}
+              >
+                Sim, excluir
+              </Button>
+            </div>
+          )}
           <Button variant="ghost" onClick={onClose} type="button">Cancelar</Button>
           <Button onClick={onSubmit as any} loading={loading}>
             {isEdit ? 'Salvar alterações' : 'Cadastrar'}

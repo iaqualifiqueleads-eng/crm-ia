@@ -260,7 +260,12 @@ export function CustomerDetailPage() {
         </div>
       </div>
 
-      <CustomerFormModal open={editOpen} onClose={() => setEditOpen(false)} customer={customer} />
+      <CustomerFormModal
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        customer={customer}
+        onDelete={() => navigate('/customers')}
+      />
     </>
   );
 }
