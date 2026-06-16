@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Search, Filter, ChevronLeft, ChevronRight, Upload } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card } from '@/components/ui/Card';
@@ -10,6 +10,7 @@ import { Chip, CustomerStatusChip } from '@/components/ui/Chip';
 import { EmptyState, LoadingRow } from '@/components/ui/EmptyState';
 import { useCustomers } from '@/features/customers/useCustomers';
 import { CustomerFormModal } from '@/features/customers/CustomerFormModal';
+import { CustomerImportModal } from '@/features/customers/CustomerImportModal';
 import { formatCurrency, formatDate, getInitials, cn } from '@/lib/utils';
 import type { CustomerStatus } from '@/types';
 
@@ -20,6 +21,7 @@ export function CustomersPage() {
   const [status, setStatus] = useState<CustomerStatus | ''>('');
   const [onlyOverdue, setOnlyOverdue] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   const { data, isLoading, isFetching } = useCustomers({
     page, limit: 20, search: search || undefined,
@@ -33,9 +35,14 @@ export function CustomersPage() {
         title="Clientes"
         description="A lista respeita o seu escopo hierárquico. Gerentes e supervisores visualizam toda a equipe; vendedores veem apenas a própria carteira."
         actions={
-          <Button onClick={() => setCreateOpen(true)} icon={<Plus className="h-4 w-4" />}>
-            Novo cliente
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" onClick={() => setImportOpen(true)} icon={<Upload className="h-4 w-4" />}>
+              Importar CSV
+            </Button>
+            <Button onClick={() => setCreateOpen(true)} icon={<Plus className="h-4 w-4" />}>
+              Novo cliente
+            </Button>
+          </div>
         }
       />
 
@@ -197,6 +204,7 @@ export function CustomersPage() {
       </Card>
 
       <CustomerFormModal open={createOpen} onClose={() => setCreateOpen(false)} />
+      <CustomerImportModal open={importOpen} onClose={() => setImportOpen(false)} />
     </>
   );
 }
