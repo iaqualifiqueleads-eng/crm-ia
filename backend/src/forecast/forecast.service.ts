@@ -87,9 +87,13 @@ export class ForecastService {
         : computedAverageDays;
 
     let nextReplenishmentAt: Date | null = null;
-    if (lastOrderAt && effectiveInterval && effectiveInterval > 0) {
-      nextReplenishmentAt = new Date(lastOrderAt);
-      nextReplenishmentAt.setDate(nextReplenishmentAt.getDate() + effectiveInterval);
+    if (effectiveInterval && effectiveInterval > 0) {
+      // Modo MANUAL sem pedidos: usa hoje como base (ex: WELL_STOCKED sem histórico de compras)
+      const base = lastOrderAt ?? (customer.forecastMode === ForecastMode.MANUAL ? new Date() : null);
+      if (base) {
+        nextReplenishmentAt = new Date(base);
+        nextReplenishmentAt.setDate(nextReplenishmentAt.getDate() + effectiveInterval);
+      }
     }
 
     const daysOverdue = nextReplenishmentAt
