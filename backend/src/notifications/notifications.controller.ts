@@ -1,8 +1,17 @@
 import { Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags, ApiQuery } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { IsBoolean, IsOptional } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { NotificationsService } from './notifications.service';
 import { CurrentUser, CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { PaginationDto } from '../common/dto/pagination.dto';
+
+class ListNotificationsDto extends PaginationDto {
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => value === 'true' || value === true)
+  unreadOnly?: boolean;
+}
 
 @ApiTags('Notifications')
 @ApiBearerAuth('access-token')
@@ -12,13 +21,12 @@ export class NotificationsController {
 
   @Get()
   @ApiOperation({ summary: 'Lista notificações do usuário logado' })
-  @ApiQuery({ name: 'unreadOnly', required: false, type: Boolean })
   list(
     @CurrentUser() actor: CurrentUserPayload,
-    @Query() pagination: PaginationDto,
-    @Query('unreadOnly') unreadOnly?: string,
+    @Query() query: ListNotificationsDto,
   ) {
-    return this.notificationsService.listForUser(actor, pagination, unreadOnly === 'true');
+    const { unreadOnly, ...pagination } = query;
+    return this.notificationsService.listForUser(actor, pagination, unreadOnly ?? false);
   }
 
   @Get('unread-count')
