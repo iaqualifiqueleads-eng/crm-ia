@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Bell, AlertTriangle, MessageCircle, ArrowRight, Sparkles } from 'lucide-react';
+import { CheckCircle2, Bell, AlertTriangle, MessageCircle, ArrowRight, Sparkles, CalendarClock, RefreshCw, Package, RotateCcw } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent, CardEyebrow, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input, Label, Select } from '@/components/ui/Input';
 import { Skeleton } from '@/components/ui/EmptyState';
-import { useReplenishmentConfig, useUpdateReplenishmentConfig } from '@/features/automation/useAutomation';
+import { useReplenishmentConfig, useUpdateReplenishmentConfig, useQueueSummary, type ScheduledContact, type PendingJob } from '@/features/automation/useAutomation';
 import { useTemplates } from '@/features/templates/useTemplates';
-import { cn } from '@/lib/utils';
+import { cn, formatDate, formatDateTime } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth.store';
 import type { ReplenishmentConfig } from '@/types/domain';
 
@@ -18,6 +19,7 @@ export function AutomationPage() {
   const { data: config, isLoading } = useReplenishmentConfig();
   const { data: templates } = useTemplates({ limit: 100 });
   const update = useUpdateReplenishmentConfig();
+  const { data: queue, isLoading: queueLoading, refetch: refetchQueue, isFetching: queueFetching } = useQueueSummary();
 
   const [form, setForm] = useState<Partial<ReplenishmentConfig>>({});
 
@@ -55,6 +57,15 @@ export function AutomationPage() {
             ? 'Defina o ritmo da automação: quando a IA contata o cliente, quantas tentativas, quando escalar para o vendedor.'
             : 'Visualização das regras de cadência (apenas o gerente pode editar).'
         }
+      />
+
+      {/* Fila de contatos */}
+      <QueueCard
+        scheduledContacts={queue?.scheduledContacts ?? []}
+        pendingJobs={queue?.pendingJobs ?? []}
+        loading={queueLoading}
+        fetching={queueFetching}
+        onRefresh={() => refetchQueue()}
       />
 
       {/* Fluxo visual editorial */}
@@ -238,6 +249,182 @@ export function AutomationPage() {
 }
 
 // ============== Sub-componentes ==============
+
+const JOB_LABEL: Record<string, string> = {
+  'send-reminder': 'Lembrete inicial',
+  'check-retry':   'Retry pendente',
+  'daily-scan':    'Varredura diária',
+  'daily-overdue': 'Varredura atrasos',
+};
+
+const QUEUE_LABEL: Record<string, string> = {
+  'replenishment':      'Reposição',
+  'message-retry':      'Retry',
+  'overdue-escalation': 'Escalação',
+};
+
+function QueueCard({
+  scheduledContacts,
+  pendingJobs,
+  loading,
+  fetching,
+  onRefresh,
+}: {
+  scheduledContacts: ScheduledContact[];
+  pendingJobs: PendingJob[];
+  loading: boolean;
+  fetching: boolean;
+  onRefresh: () => void;
+}) {
+  const [tab, setTab] = useState<'contacts' | 'jobs'>('contacts');
+
+  return (
+    <Card className="mb-6">
+      <CardHeader>
+        <div>
+          <CardEyebrow>Fila de contatos</CardEyebrow>
+          <CardTitle>Agendamentos e jobs pendentes</CardTitle>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          icon={<RefreshCw className={cn('w-3.5 h-3.5', fetching && 'animate-spin')} />}
+          onClick={onRefresh}
+          type="button"
+        >
+          Atualizar
+        </Button>
+      </CardHeader>
+
+      {/* Tabs */}
+      <div className="flex border-b border-platinum-100/80 px-5">
+        {([
+          { key: 'contacts', label: `Contatos agendados (${scheduledContacts.length})`, icon: CalendarClock },
+          { key: 'jobs',     label: `Jobs BullMQ (${pendingJobs.length})`,               icon: RotateCcw },
+        ] as const).map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setTab(key)}
+            className={cn(
+              'flex items-center gap-1.5 px-4 py-3 text-xs font-medium border-b-2 -mb-px transition-colors',
+              tab === key
+                ? 'border-onyx text-onyx'
+                : 'border-transparent text-smoke hover:text-graphite',
+            )}
+          >
+            <Icon className="w-3.5 h-3.5" />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <CardContent className="p-0">
+        {loading ? (
+          <div className="p-5 space-y-2">
+            <Skeleton className="h-8" />
+            <Skeleton className="h-8" />
+            <Skeleton className="h-8" />
+          </div>
+        ) : tab === 'contacts' ? (
+          scheduledContacts.length === 0 ? (
+            <p className="text-sm text-smoke text-center py-10">Nenhum contato agendado</p>
+          ) : (
+            <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-platinum-50/90 border-b border-platinum-100">
+                  <tr>
+                    {['Cliente', 'Previsão de contato', 'Responsável', 'Modo'].map((h) => (
+                      <th key={h} className="text-left px-5 py-3 text-2xs uppercase tracking-micro text-smoke font-medium">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-platinum-100/60">
+                  {scheduledContacts.map((c) => (
+                    <tr key={c.id} className="hover:bg-platinum-50/40">
+                      <td className="px-5 py-3">
+                        <Link
+                          to={`/customers/${c.id}`}
+                          className="font-medium text-onyx hover:underline underline-offset-2"
+                        >
+                          {c.companyName}
+                        </Link>
+                      </td>
+                      <td className="px-5 py-3 font-mono text-sm tabular-nums text-graphite">
+                        {formatDate(c.nextReplenishmentAt)}
+                      </td>
+                      <td className="px-5 py-3 text-graphite">
+                        {c.salesperson?.name ?? '—'}
+                      </td>
+                      <td className="px-5 py-3">
+                        {c.forecastMode === 'MANUAL' ? (
+                          <span className="inline-flex items-center gap-1 text-2xs px-2 py-0.5 rounded bg-champagne text-onyx font-medium">
+                            <Package className="w-3 h-3" />
+                            Bem estocado{c.manualIntervalDays ? ` · ${c.manualIntervalDays}d` : ''}
+                          </span>
+                        ) : (
+                          <span className="text-2xs text-smoke">Auto</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
+        ) : (
+          pendingJobs.length === 0 ? (
+            <p className="text-sm text-smoke text-center py-10">Nenhum job pendente no BullMQ</p>
+          ) : (
+            <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-platinum-50/90 border-b border-platinum-100">
+                  <tr>
+                    {['Cliente', 'Job', 'Fila', 'Executa em', 'Retry'].map((h) => (
+                      <th key={h} className="text-left px-5 py-3 text-2xs uppercase tracking-micro text-smoke font-medium">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-platinum-100/60">
+                  {pendingJobs.map((j) => (
+                    <tr key={j.id} className="hover:bg-platinum-50/40">
+                      <td className="px-5 py-3">
+                        {j.customerId ? (
+                          <Link
+                            to={`/customers/${j.customerId}`}
+                            className="font-medium text-onyx hover:underline underline-offset-2"
+                          >
+                            {j.companyName ?? j.customerId}
+                          </Link>
+                        ) : (
+                          <span className="text-smoke text-xs">—</span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3 text-graphite">
+                        {JOB_LABEL[j.name] ?? j.name}
+                      </td>
+                      <td className="px-5 py-3">
+                        <span className="text-2xs px-2 py-0.5 rounded bg-platinum-100 text-graphite font-mono">
+                          {QUEUE_LABEL[j.queue] ?? j.queue}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 font-mono text-xs tabular-nums text-graphite">
+                        {formatDateTime(j.processAt)}
+                      </td>
+                      <td className="px-5 py-3 font-mono text-xs text-smoke">
+                        {j.retryStep != null ? `${j.retryStep}/3` : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 function TemplateSelect({
   label, icon: Icon, value, onChange, templates, filterTrigger, disabled,

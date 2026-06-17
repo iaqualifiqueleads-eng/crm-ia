@@ -15,6 +15,12 @@ export class AutomationController {
     private readonly schedulerService: SchedulerService,
   ) {}
 
+  @Get('queue')
+  @ApiOperation({ summary: 'Lista contatos agendados e jobs pendentes no BullMQ' })
+  getQueue() {
+    return this.automationService.getQueueSummary();
+  }
+
   @Get('replenishment')
   @ApiOperation({ summary: 'Lê configuração de cadência de reposição' })
   getReplenishment() {
