@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { CustomerStatusChip, Chip } from '@/components/ui/Chip';
 import { Skeleton } from '@/components/ui/EmptyState';
 import { CustomerFormModal } from '@/features/customers/CustomerFormModal';
+import { SendAiMessageModal } from '@/features/customers/SendAiMessageModal';
 import { useCustomer, useCustomerTimeline, useCustomerInteractions } from '@/features/customers/useCustomers';
 import { cn, formatCurrency, formatDate, formatDateTime, formatNumber, getInitials } from '@/lib/utils';
 import type { Interaction } from '@/types';
@@ -28,6 +29,7 @@ export function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [editOpen, setEditOpen] = useState(false);
+  const [aiMessageOpen, setAiMessageOpen] = useState(false);
 
   const { data: customer, isLoading } = useCustomer(id);
   const { data: timeline } = useCustomerTimeline(id);
@@ -76,6 +78,9 @@ export function CustomerDetailPage() {
         actions={
           <>
             <CustomerStatusChip status={customer.status} />
+            <Button variant="secondary" onClick={() => setAiMessageOpen(true)} icon={<Bot className="h-4 w-4" />}>
+              Enviar via IA
+            </Button>
             <Button variant="secondary" onClick={() => setEditOpen(true)} icon={<Edit3 className="h-4 w-4" />}>
               Editar
             </Button>
@@ -283,6 +288,13 @@ export function CustomerDetailPage() {
         onClose={() => setEditOpen(false)}
         customer={customer}
         onDelete={() => navigate('/customers')}
+      />
+
+      <SendAiMessageModal
+        open={aiMessageOpen}
+        onClose={() => setAiMessageOpen(false)}
+        customerId={customer.id}
+        customerName={customer.companyName}
       />
     </>
   );

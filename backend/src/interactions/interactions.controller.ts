@@ -5,6 +5,7 @@ import {
   CreateInteractionDto,
   IncomingMessageDto,
   InteractionFiltersDto,
+  SendAiMessageDto,
 } from './dto/interactions.dto';
 import { CurrentUser, CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
@@ -34,6 +35,16 @@ export class InteractionsController {
     @Param('customerId', ParseUUIDPipe) customerId: string,
   ) {
     return this.interactionsService.getCustomerTimeline(actor, customerId);
+  }
+
+  @Post('customer/:customerId/send-ai-message')
+  @ApiOperation({ summary: 'Dispara mensagem via IA para um cliente manualmente' })
+  sendAiMessage(
+    @CurrentUser() actor: CurrentUserPayload,
+    @Param('customerId', ParseUUIDPipe) customerId: string,
+    @Body() dto: SendAiMessageDto,
+  ) {
+    return this.interactionsService.sendManualAiMessage(actor, customerId, dto.templateId);
   }
 
   // ------------------------------------------------------------

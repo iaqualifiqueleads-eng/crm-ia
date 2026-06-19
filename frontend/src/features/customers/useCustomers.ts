@@ -45,6 +45,21 @@ export function useCustomerTimeline(id: string | undefined) {
   });
 }
 
+export function useSendAiMessage(customerId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (templateId: string) => {
+      const { data } = await api.post(`/interactions/customer/${customerId}/send-ai-message`, { templateId });
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['customers', customerId, 'interactions'] });
+      toast.success('Mensagem enviada via IA');
+    },
+    onError: (err) => toast.error(extractErrorMessage(err)),
+  });
+}
+
 export function useCustomerInteractions(id: string | undefined) {
   return useQuery({
     queryKey: ['customers', id, 'interactions'],

@@ -42,6 +42,12 @@ export class IncomingMessageDto {
   receivedAt?: Date;
 }
 
+export class SendAiMessageDto {
+  @ApiProperty({ description: 'ID do template a usar' })
+  @IsUUID()
+  templateId: string;
+}
+
 export class InteractionFiltersDto extends PaginationDto {
   @ApiPropertyOptional() @IsOptional() @IsUUID() customerId?: string;
   @ApiPropertyOptional({ enum: InteractionType }) @IsOptional() @IsEnum(InteractionType) type?: InteractionType;

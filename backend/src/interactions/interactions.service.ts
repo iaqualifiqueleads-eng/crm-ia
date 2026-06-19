@@ -240,6 +240,12 @@ export class InteractionsService {
     return buildPaginatedResult(data, total, page, limit);
   }
 
+  async sendManualAiMessage(actor: CurrentUserPayload, customerId: string, templateId: string) {
+    await this.assertCustomerAccess(actor, customerId);
+    const automationRef = `MANUAL_${actor.sub}_${Date.now()}`;
+    return this.sendAutomatedMessage({ customerId, templateId, automationRef });
+  }
+
   async getCustomerTimeline(actor: CurrentUserPayload, customerId: string) {
     await this.assertCustomerAccess(actor, customerId);
     return this.prisma.interaction.findMany({
