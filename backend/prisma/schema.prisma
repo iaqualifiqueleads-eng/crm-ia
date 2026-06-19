@@ -463,7 +463,7 @@ model Interaction {
   @@index([authorId])
   @@index([type])
   @@index([status])
-  @@index([externalId])
+  @@unique([externalId])
   @@index([createdAt])
   @@map("interactions")
 }

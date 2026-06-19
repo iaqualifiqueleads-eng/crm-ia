@@ -161,27 +161,29 @@ export class InteractionsService {
       return { matched: false, reason: 'Número não está vinculado a nenhum cliente.' };
     }
 
-    // Idempotência: se o externalId já existe, ignora o duplicado
-    const existing = await this.prisma.interaction.findFirst({
-      where: { externalId: dto.externalId },
-    });
-    if (existing) {
-      this.logger.warn(`Webhook duplicado ignorado — externalId já existe: ${dto.externalId}`);
-      return { matched: true, interactionId: existing.id, customerId: customer.id, duplicate: true };
+    let incoming: Awaited<ReturnType<typeof this.prisma.interaction.create>>;
+    try {
+      incoming = await this.prisma.interaction.create({
+        data: {
+          customerId: customer.id,
+          type: InteractionType.WHATSAPP,
+          direction: InteractionDirection.INBOUND,
+          status: InteractionStatus.SENT,
+          content: dto.text,
+          channel: 'whatsapp',
+          externalId: dto.externalId,
+          sentAt: dto.receivedAt ?? new Date(),
+        },
+      });
+    } catch (err: any) {
+      // P2002 = unique constraint violation → webhook duplicado
+      if (err?.code === 'P2002') {
+        this.logger.warn(`Webhook duplicado ignorado — externalId: ${dto.externalId}`);
+        const existing = await this.prisma.interaction.findFirst({ where: { externalId: dto.externalId } });
+        return { matched: true, interactionId: existing!.id, customerId: customer.id, duplicate: true };
+      }
+      throw err;
     }
-
-    const incoming = await this.prisma.interaction.create({
-      data: {
-        customerId: customer.id,
-        type: InteractionType.WHATSAPP,
-        direction: InteractionDirection.INBOUND,
-        status: InteractionStatus.SENT,
-        content: dto.text,
-        channel: 'whatsapp',
-        externalId: dto.externalId,
-        sentAt: dto.receivedAt ?? new Date(),
-      },
-    });
 
     // Procura a última interação OUTBOUND automática pendente de resposta
     // e marca como REPLIED
