@@ -111,3 +111,5 @@ export interface CustomerEvent {
   createdAt: string;
   author?: { id: string; name: string; role: UserRole } | null;
 }
+
+export type { Interaction } from './domain';

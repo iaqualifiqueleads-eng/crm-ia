@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ChevronLeft, Edit3, Phone, Mail, MessageCircle, MapPin, Building2,
-  CalendarClock, TrendingUp, Activity, AlertTriangle,
+  CalendarClock, TrendingUp, Activity, AlertTriangle, Bot, User as UserIcon,
 } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardHeader, CardTitle, CardEyebrow, CardContent } from '@/components/ui/Card';
@@ -11,8 +11,9 @@ import { Button } from '@/components/ui/Button';
 import { CustomerStatusChip, Chip } from '@/components/ui/Chip';
 import { Skeleton } from '@/components/ui/EmptyState';
 import { CustomerFormModal } from '@/features/customers/CustomerFormModal';
-import { useCustomer, useCustomerTimeline } from '@/features/customers/useCustomers';
+import { useCustomer, useCustomerTimeline, useCustomerInteractions } from '@/features/customers/useCustomers';
 import { cn, formatCurrency, formatDate, formatDateTime, formatNumber, getInitials } from '@/lib/utils';
+import type { Interaction } from '@/types';
 
 const eventIconMap: Record<string, React.ElementType> = {
   CREATED:          Building2,
@@ -30,6 +31,7 @@ export function CustomerDetailPage() {
 
   const { data: customer, isLoading } = useCustomer(id);
   const { data: timeline } = useCustomerTimeline(id);
+  const { data: interactions } = useCustomerInteractions(id);
 
   if (isLoading) {
     return (
@@ -119,52 +121,68 @@ export function CustomerDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Timeline */}
-          <Card>
-            <CardHeader>
-              <div>
-                <CardEyebrow>Atividade</CardEyebrow>
-                <CardTitle>Linha do tempo</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {!timeline || timeline.length === 0 ? (
-                <p className="text-sm text-smoke">Sem eventos registrados ainda.</p>
-              ) : (
-                <ol className="relative pl-7 space-y-5">
-                  <span className="absolute left-2 top-1 bottom-1 w-px bg-platinum-100/70" />
-                  {timeline.map((ev, i) => {
-                    const Icon = eventIconMap[ev.type] ?? Activity;
-                    return (
-                      <motion.li
-                        key={ev.id}
-                        initial={{ opacity: 0, x: -4 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.04 }}
-                        className="relative"
-                      >
-                        <span className="absolute -left-7 top-0 h-5 w-5 rounded-sharp bg-pearl border border-platinum-100 inline-flex items-center justify-center">
-                          <Icon className="h-2.5 w-2.5 text-graphite" />
-                        </span>
-                        <div className="flex items-baseline justify-between gap-3">
-                          <span className="text-sm text-onyx">{ev.title}</span>
-                          <time className="text-2xs text-smoke font-mono shrink-0">
-                            {formatDateTime(ev.createdAt)}
-                          </time>
-                        </div>
-                        {ev.description && (
-                          <p className="text-xs text-smoke mt-1">{ev.description}</p>
-                        )}
-                        {ev.author && (
-                          <p className="text-2xs text-smoke/70 mt-1">por {ev.author.name}</p>
-                        )}
-                      </motion.li>
-                    );
-                  })}
-                </ol>
-              )}
-            </CardContent>
-          </Card>
+          {/* Timeline + Chat */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* Linha do tempo de eventos */}
+            <Card>
+              <CardHeader>
+                <div>
+                  <CardEyebrow>Atividade</CardEyebrow>
+                  <CardTitle>Linha do tempo</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {!timeline || timeline.length === 0 ? (
+                  <p className="text-sm text-smoke">Sem eventos registrados ainda.</p>
+                ) : (
+                  <ol className="relative pl-7 space-y-5">
+                    <span className="absolute left-2 top-1 bottom-1 w-px bg-platinum-100/70" />
+                    {timeline.map((ev, i) => {
+                      const Icon = eventIconMap[ev.type] ?? Activity;
+                      return (
+                        <motion.li
+                          key={ev.id}
+                          initial={{ opacity: 0, x: -4 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.04 }}
+                          className="relative"
+                        >
+                          <span className="absolute -left-7 top-0 h-5 w-5 rounded-sharp bg-pearl border border-platinum-100 inline-flex items-center justify-center">
+                            <Icon className="h-2.5 w-2.5 text-graphite" />
+                          </span>
+                          <div className="flex items-baseline justify-between gap-3">
+                            <span className="text-sm text-onyx">{ev.title}</span>
+                            <time className="text-2xs text-smoke font-mono shrink-0">
+                              {formatDateTime(ev.createdAt)}
+                            </time>
+                          </div>
+                          {ev.description && (
+                            <p className="text-xs text-smoke mt-1">{ev.description}</p>
+                          )}
+                          {ev.author && (
+                            <p className="text-2xs text-smoke/70 mt-1">por {ev.author.name}</p>
+                          )}
+                        </motion.li>
+                      );
+                    })}
+                  </ol>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Histórico de conversa (chat) */}
+            <Card className="flex flex-col">
+              <CardHeader>
+                <div>
+                  <CardEyebrow>Mensagens</CardEyebrow>
+                  <CardTitle>Histórico de conversa</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="flex-1 overflow-y-auto max-h-[480px] pr-1">
+                <ChatHistory interactions={interactions ?? []} />
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Notas */}
           {customer.notes && (
@@ -302,6 +320,76 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
     <div className="flex items-center justify-between gap-3">
       <span className="text-2xs uppercase tracking-micro text-smoke">{label}</span>
       <span className="text-onyx">{children}</span>
+    </div>
+  );
+}
+
+const interactionTypeLabel: Record<string, string> = {
+  WHATSAPP:    'WhatsApp',
+  WHATSAPP_AI: 'IA',
+  EMAIL:       'E-mail',
+  CALL:        'Ligação',
+  MEETING:     'Reunião',
+  NOTE:        'Nota',
+  SYSTEM:      'Sistema',
+};
+
+function ChatHistory({ interactions }: { interactions: Interaction[] }) {
+  if (interactions.length === 0) {
+    return <p className="text-sm text-smoke">Sem mensagens registradas ainda.</p>;
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      {interactions.map((msg, i) => {
+        const isOutbound = msg.direction === 'OUTBOUND';
+        const isAI = msg.type === 'WHATSAPP_AI';
+        return (
+          <motion.div
+            key={msg.id}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.02 }}
+            className={cn('flex gap-2', isOutbound ? 'flex-row-reverse' : 'flex-row')}
+          >
+            {/* Avatar */}
+            <span className={cn(
+              'h-6 w-6 shrink-0 rounded-sharp inline-flex items-center justify-center mt-1',
+              isOutbound ? 'bg-onyx text-pearl' : 'bg-platinum-100 text-graphite',
+            )}>
+              {isAI
+                ? <Bot className="h-3 w-3" />
+                : isOutbound
+                  ? <UserIcon className="h-3 w-3" />
+                  : <MessageCircle className="h-3 w-3" />
+              }
+            </span>
+
+            {/* Balão */}
+            <div className={cn('max-w-[78%] space-y-1', isOutbound ? 'items-end' : 'items-start', 'flex flex-col')}>
+              <div className={cn(
+                'px-3 py-2 rounded-sharp text-sm leading-relaxed',
+                isOutbound
+                  ? 'bg-onyx text-pearl'
+                  : 'bg-pearl border border-platinum-100 text-onyx',
+              )}>
+                {msg.content}
+              </div>
+              <div className="flex items-center gap-2 px-1">
+                <span className="text-2xs text-smoke/60 font-mono">
+                  {formatDateTime(msg.createdAt)}
+                </span>
+                <span className="text-2xs text-smoke/50">
+                  {interactionTypeLabel[msg.type] ?? msg.type}
+                </span>
+                {msg.author && (
+                  <span className="text-2xs text-smoke/50">· {msg.author.name}</span>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        );
+      })}
     </div>
   );
 }

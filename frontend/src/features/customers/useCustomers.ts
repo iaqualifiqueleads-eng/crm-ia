@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { api, extractErrorMessage } from '@/services/api';
-import type { Customer, CustomerEvent, CustomerStatus, ForecastMode, Paginated } from '@/types';
+import type { Customer, CustomerEvent, CustomerStatus, ForecastMode, Paginated, Interaction } from '@/types';
 
 export interface CustomerFilters {
   page?: number;
@@ -42,6 +42,18 @@ export function useCustomerTimeline(id: string | undefined) {
       return data;
     },
     enabled: !!id,
+  });
+}
+
+export function useCustomerInteractions(id: string | undefined) {
+  return useQuery({
+    queryKey: ['customers', id, 'interactions'],
+    queryFn: async () => {
+      const { data } = await api.get<Interaction[]>(`/interactions/customer/${id}/timeline`);
+      return data;
+    },
+    enabled: !!id,
+    refetchInterval: 30_000,
   });
 }
 
