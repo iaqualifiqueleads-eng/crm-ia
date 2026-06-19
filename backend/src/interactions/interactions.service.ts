@@ -161,12 +161,21 @@ export class InteractionsService {
       return { matched: false, reason: 'Número não está vinculado a nenhum cliente.' };
     }
 
+    // Idempotência: se o externalId já existe, ignora o duplicado
+    const existing = await this.prisma.interaction.findFirst({
+      where: { externalId: dto.externalId },
+    });
+    if (existing) {
+      this.logger.warn(`Webhook duplicado ignorado — externalId já existe: ${dto.externalId}`);
+      return { matched: true, interactionId: existing.id, customerId: customer.id, duplicate: true };
+    }
+
     const incoming = await this.prisma.interaction.create({
       data: {
         customerId: customer.id,
         type: InteractionType.WHATSAPP,
         direction: InteractionDirection.INBOUND,
-        status: InteractionStatus.SENT, // recebido com sucesso
+        status: InteractionStatus.SENT,
         content: dto.text,
         channel: 'whatsapp',
         externalId: dto.externalId,
