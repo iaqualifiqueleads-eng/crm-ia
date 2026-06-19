@@ -15,9 +15,9 @@ const triggerLabel: Record<TemplateTrigger, string> = {
   FIRST_CONTACT: 'Primeiro contato',
   REPLENISHMENT_REMINDER: 'Lembrete de reposição',
   REPLENISHMENT_OVERDUE: 'Cliente atrasado',
-  RETRY_1H: 'Retry · 1h',
-  RETRY_3H: 'Retry · 3h',
-  RETRY_24H: 'Retry · 24h',
+  RETRY_1: 'Retry 1',
+  RETRY_2: 'Retry 2',
+  RETRY_3: 'Retry 3',
   CUSTOM: 'Personalizado',
   WELL_STOCKED: 'Estocado'
 };
@@ -25,9 +25,9 @@ const triggerLabel: Record<TemplateTrigger, string> = {
 const triggerTone: Record<TemplateTrigger, 'champagne' | 'signal' | 'neutral' | 'forest'> = {
   REPLENISHMENT_REMINDER: 'champagne',
   REPLENISHMENT_OVERDUE: 'signal',
-  RETRY_1H: 'neutral',
-  RETRY_3H: 'neutral',
-  RETRY_24H: 'neutral',
+  RETRY_1: 'neutral',
+  RETRY_2: 'neutral',
+  RETRY_3: 'neutral',
   FIRST_CONTACT: 'forest',
   CUSTOM: 'neutral',
   WELL_STOCKED: 'neutral'

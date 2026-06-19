@@ -34,24 +34,24 @@ async function main() {
       aiInstructions: 'Tom profissional, cordial e direto. Sem emojis em excesso.',
     },
     {
-      name: 'Retry 1h — sem resposta',
-      trigger: TemplateTrigger.RETRY_1H,
+      name: 'Retry 1 — sem resposta',
+      trigger: TemplateTrigger.RETRY_1,
       body:
         'Oi {{contactName}}, tudo bem? Só passando para confirmar se viu minha mensagem anterior ' +
         'sobre a reposição de {{companyName}}. Posso te ajudar com algo?',
       aiInstructions: 'Tom leve, sem pressão. Como se fosse um amigo lembrando.',
     },
     {
-      name: 'Retry 3h — segunda tentativa',
-      trigger: TemplateTrigger.RETRY_3H,
+      name: 'Retry 2 — segunda tentativa',
+      trigger: TemplateTrigger.RETRY_2,
       body:
         '{{contactName}}, posso te ajudar a fechar o pedido de reposição agora? Se preferir, ' +
         'me chama por aqui que monto a proposta rapidinho.',
       aiInstructions: 'Tom prestativo. Foco em facilitar a vida do cliente.',
     },
     {
-      name: 'Retry 24h — última tentativa IA',
-      trigger: TemplateTrigger.RETRY_24H,
+      name: 'Retry 3 — última tentativa IA',
+      trigger: TemplateTrigger.RETRY_3,
       body:
         'Oi {{contactName}}, vou te ligar nas próximas horas para falar sobre a reposição da ' +
         '{{companyName}}. Caso prefira responder por aqui, fico no aguardo.',
@@ -92,14 +92,14 @@ async function main() {
   const replenishmentTemplate = await prisma.messageTemplate.findFirst({
     where: { trigger: TemplateTrigger.REPLENISHMENT_REMINDER, deletedAt: null },
   });
-  const retry1h = await prisma.messageTemplate.findFirst({
-    where: { trigger: TemplateTrigger.RETRY_1H, deletedAt: null },
+  const retry1 = await prisma.messageTemplate.findFirst({
+    where: { trigger: TemplateTrigger.RETRY_1, deletedAt: null },
   });
-  const retry3h = await prisma.messageTemplate.findFirst({
-    where: { trigger: TemplateTrigger.RETRY_3H, deletedAt: null },
+  const retry2 = await prisma.messageTemplate.findFirst({
+    where: { trigger: TemplateTrigger.RETRY_2, deletedAt: null },
   });
-  const retry24h = await prisma.messageTemplate.findFirst({
-    where: { trigger: TemplateTrigger.RETRY_24H, deletedAt: null },
+  const retry3 = await prisma.messageTemplate.findFirst({
+    where: { trigger: TemplateTrigger.RETRY_3, deletedAt: null },
   });
   const overdueTpl = await prisma.messageTemplate.findFirst({
     where: { trigger: TemplateTrigger.REPLENISHMENT_OVERDUE, deletedAt: null },
@@ -114,9 +114,9 @@ async function main() {
     defaultReminderTemplateId: replenishmentTemplate?.id,
     overdueTemplateId: overdueTpl?.id,
     retryTemplateIds: {
-      retry1h: retry1h?.id,
-      retry3h: retry3h?.id,
-      retry24h: retry24h?.id,
+      retry1: retry1?.id,
+      retry2: retry2?.id,
+      retry3: retry3?.id,
     },
   };
 

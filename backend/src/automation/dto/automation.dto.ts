@@ -3,9 +3,9 @@ import { Type } from 'class-transformer';
 import { IsArray, IsBoolean, IsInt, IsOptional, IsUUID, Max, Min, ValidateNested } from 'class-validator';
 
 class RetryTemplatesDto {
-  @ApiPropertyOptional() @IsOptional() @IsUUID() retry1h?: string;
-  @ApiPropertyOptional() @IsOptional() @IsUUID() retry3h?: string;
-  @ApiPropertyOptional() @IsOptional() @IsUUID() retry24h?: string;
+  @ApiPropertyOptional() @IsOptional() @IsUUID() retry1?: string;
+  @ApiPropertyOptional() @IsOptional() @IsUUID() retry2?: string;
+  @ApiPropertyOptional() @IsOptional() @IsUUID() retry3?: string;
 }
 
 export class UpdateReplenishmentConfigDto {

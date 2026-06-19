@@ -30,7 +30,7 @@ export function AutomationPage() {
   const set = <K extends keyof ReplenishmentConfig>(k: K, v: ReplenishmentConfig[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
-  const setRetryTemplate = (key: 'retry1h' | 'retry3h' | 'retry24h', v: string) =>
+  const setRetryTemplate = (key: 'retry1' | 'retry2' | 'retry3', v: string) =>
     setForm((f) => ({
       ...f,
       retryTemplateIds: { ...f.retryTemplateIds, [key]: v || undefined },
@@ -198,30 +198,30 @@ export function AutomationPage() {
               disabled={!isManager}
             />
             <TemplateSelect
-              label="Retry 1h — sem resposta"
+              label="Retry 1 — sem resposta"
               icon={MessageCircle}
-              value={form.retryTemplateIds?.retry1h ?? ''}
-              onChange={(v) => setRetryTemplate('retry1h', v)}
+              value={form.retryTemplateIds?.retry1 ?? ''}
+              onChange={(v) => setRetryTemplate('retry1', v)}
               templates={activeTemplates}
-              filterTrigger="RETRY_1H"
+              filterTrigger="RETRY_1"
               disabled={!isManager}
             />
             <TemplateSelect
-              label="Retry 3h — segunda tentativa"
+              label="Retry 2 — segunda tentativa"
               icon={MessageCircle}
-              value={form.retryTemplateIds?.retry3h ?? ''}
-              onChange={(v) => setRetryTemplate('retry3h', v)}
+              value={form.retryTemplateIds?.retry2 ?? ''}
+              onChange={(v) => setRetryTemplate('retry2', v)}
               templates={activeTemplates}
-              filterTrigger="RETRY_3H"
+              filterTrigger="RETRY_2"
               disabled={!isManager}
             />
             <TemplateSelect
-              label="Retry 24h — última tentativa IA"
+              label="Retry 3 — última tentativa IA"
               icon={MessageCircle}
-              value={form.retryTemplateIds?.retry24h ?? ''}
-              onChange={(v) => setRetryTemplate('retry24h', v)}
+              value={form.retryTemplateIds?.retry3 ?? ''}
+              onChange={(v) => setRetryTemplate('retry3', v)}
               templates={activeTemplates}
-              filterTrigger="RETRY_24H"
+              filterTrigger="RETRY_3"
               disabled={!isManager}
             />
             <TemplateSelect

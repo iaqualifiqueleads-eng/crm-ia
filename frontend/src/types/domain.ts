@@ -55,7 +55,7 @@ export interface Task {
 
 export type TemplateTrigger =
   | 'FIRST_CONTACT' | 'REPLENISHMENT_REMINDER' | 'REPLENISHMENT_OVERDUE'
-  | 'RETRY_1H' | 'RETRY_3H' | 'RETRY_24H' | 'CUSTOM' | 'WELL_STOCKED';
+  | 'RETRY_1' | 'RETRY_2' | 'RETRY_3' | 'CUSTOM' | 'WELL_STOCKED';
 
 export interface MessageTemplate {
   id: string;
@@ -118,9 +118,9 @@ export interface ReplenishmentConfig {
   defaultReminderTemplateId?: string;
   overdueTemplateId?: string;
   retryTemplateIds?: {
-    retry1h?: string;
-    retry3h?: string;
-    retry24h?: string;
+    retry1?: string;
+    retry2?: string;
+    retry3?: string;
   };
 }
 

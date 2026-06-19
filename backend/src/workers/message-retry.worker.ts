@@ -98,9 +98,9 @@ export class MessageRetryWorker extends WorkerHost {
     if (data.retryStep < 3) {
       // Reenvia usando o template de retry correspondente, se houver
       const templateForStep =
-        data.retryStep === 1 ? config.retryTemplateIds?.retry1h
-        : data.retryStep === 2 ? config.retryTemplateIds?.retry3h
-        : config.retryTemplateIds?.retry24h;
+        data.retryStep === 1 ? config.retryTemplateIds?.retry1
+        : data.retryStep === 2 ? config.retryTemplateIds?.retry2
+        : config.retryTemplateIds?.retry3;
 
       const templateId = templateForStep ?? config.defaultReminderTemplateId;
       if (!templateId) {

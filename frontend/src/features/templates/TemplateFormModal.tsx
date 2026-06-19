@@ -13,9 +13,9 @@ interface Props {
 
 const triggers: Array<{ value: TemplateTrigger; label: string; description: string }> = [
   { value: 'REPLENISHMENT_REMINDER', label: 'Lembrete de reposição', description: 'Disparado no dia previsto da próxima compra' },
-  { value: 'RETRY_1H',  label: 'Retry 1h',  description: 'Se cliente não respondeu em 1h' },
-  { value: 'RETRY_3H',  label: 'Retry 3h',  description: 'Se cliente não respondeu em 3h' },
-  { value: 'RETRY_24H', label: 'Retry 24h', description: 'Última tentativa antes de escalar' },
+  { value: 'RETRY_1', label: 'Retry 1', description: 'Primeira tentativa sem resposta' },
+  { value: 'RETRY_2', label: 'Retry 2', description: 'Segunda tentativa sem resposta' },
+  { value: 'RETRY_3', label: 'Retry 3', description: 'Última tentativa antes de escalar' },
   { value: 'REPLENISHMENT_OVERDUE', label: 'Cliente atrasado', description: 'Cliente passou do prazo previsto' },
   { value: 'FIRST_CONTACT', label: 'Primeiro contato', description: 'Mensagem inicial após cadastro' },
   { value: 'CUSTOM',  label: 'Personalizado', description: 'Disparo manual ou cenário customizado' },

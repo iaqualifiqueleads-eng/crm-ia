@@ -22,11 +22,11 @@ export interface ReplenishmentFlowConfig {
   escalateToManagementAfterDays: number;
   /** Template default para o primeiro envio (uuid). */
   defaultReminderTemplateId?: string;
-  /** Template para mensagens de retry (1h, 3h, 24h). */
+  /** Template para mensagens de retry (1ª, 2ª, 3ª tentativa). */
   retryTemplateIds?: {
-    retry1h?: string;
-    retry3h?: string;
-    retry24h?: string;
+    retry1?: string;
+    retry2?: string;
+    retry3?: string;
   };
   /** Template para mensagem de cliente atrasado. */
   overdueTemplateId?: string;
