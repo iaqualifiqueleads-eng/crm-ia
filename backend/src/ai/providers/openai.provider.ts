@@ -18,7 +18,7 @@ import {
 @Injectable()
 export class OpenAIProvider implements AIProvider {
   readonly providerName = AiProvider.OPENAI;
-  readonly availableModels = ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'o1-mini'];
+  readonly availableModels = ['gpt-4.1-mini', 'gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'o1-mini'];
 
   private readonly logger = new Logger(OpenAIProvider.name);
   private readonly apiKey: string;
