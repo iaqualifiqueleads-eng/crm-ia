@@ -40,11 +40,12 @@ export class WahaWhatsAppService implements MessagingProvider {
       };
     }
 
+    const chatId = await this.resolveChatId(message.to);
     const url = `${this.baseUrl}/api/sendText`;
     const body = {
-      chatId: this.normalizeNumber(message.to),
+      chatId,
       text: message.text,
-      session: 'default', // WAHA usa sessões nomeadas
+      session: 'default',
     };
 
     const t0 = Date.now();
@@ -92,16 +93,42 @@ export class WahaWhatsAppService implements MessagingProvider {
   }
 
   /**
+   * Resolve o chatId correto para o número:
+   * - Contas WhatsApp Business usam LID (@lid) em vez de @c.us
+   * - Consulta o endpoint de LIDs do WAHA; se encontrar, usa o LID
+   * - Caso contrário, cai no formato padrão @c.us
+   */
+  private async resolveChatId(raw: string): Promise<string> {
+    const phone = this.normalizeNumber(raw).replace('@c.us', '');
+    try {
+      const res = await fetch(
+        `${this.baseUrl}/api/default/lids/pn/${phone}`,
+        { headers: { 'X-Api-Key': this.apiKey } },
+      );
+      if (res.ok) {
+        const data: any = await res.json();
+        const lid = data?.lid ?? data?.id;
+        if (lid) {
+          const chatId = lid.endsWith('@lid') ? lid : `${lid}@lid`;
+          this.logger.debug(`LID resolvido para ${phone}: ${chatId}`);
+          return chatId;
+        }
+      }
+    } catch (err) {
+      this.logger.warn(`Falha ao consultar LID para ${phone}: ${err}`);
+    }
+    // Fallback para @c.us (número pessoal ou LID não encontrado)
+    return `${phone}@c.us`;
+  }
+
+  /**
    * Normaliza números brasileiros para o formato esperado pela WAHA:
    * 5527999998888@c.us
    */
   private normalizeNumber(raw: string): string {
     let n = raw.replace(/\D/g, '');
-    // Se começa com 0, retira (DDD com zero)
     if (n.startsWith('0')) n = n.slice(1);
-    // Se tem 10 ou 11 dígitos (DDD + número BR), adiciona 55
     if (n.length === 10 || n.length === 11) n = `55${n}`;
-    // Adiciona sufixo @c.us se não tiver
     if (!n.endsWith('@c.us')) n = `${n}@c.us`;
     return n;
   }
