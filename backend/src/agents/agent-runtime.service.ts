@@ -87,8 +87,11 @@ export class AgentRuntimeService {
       .filter(Boolean);
     const toolDefinitions = this.tools.definitions(enabledTools);
 
+    // Contexto da última automação enviada para este cliente
+    const lastAutomation = await this.getLastAutomationContext(input.customerId);
+
     // Prompt do sistema enriquecido com contexto do cliente
-    const systemPrompt = this.enrichSystemPrompt(agent.systemPrompt, customer);
+    const systemPrompt = this.enrichSystemPrompt(agent.systemPrompt, customer, lastAutomation);
 
     const ctx: ToolExecutionContext = {
       agentId: agent.id,
@@ -312,7 +315,22 @@ export class AgentRuntimeService {
   /**
    * Injeta no system prompt informações úteis do cliente para o agente.
    */
-  private enrichSystemPrompt(basePrompt: string, customer: any): string {
+  private enrichSystemPrompt(
+    basePrompt: string,
+    customer: any,
+    lastAutomation?: { templateName: string; trigger: string; sentAt: Date; content: string } | null,
+  ): string {
+    const triggerLabels: Record<string, string> = {
+      FIRST_CONTACT: 'Primeiro contato',
+      REPLENISHMENT_REMINDER: 'Lembrete de reposição',
+      REPLENISHMENT_OVERDUE: 'Reposição em atraso',
+      RETRY_1H: 'Reenvio automático (após 1h)',
+      RETRY_3H: 'Reenvio automático (após 3h)',
+      RETRY_24H: 'Reenvio automático (após 24h)',
+      WELL_STOCKED: 'Cliente bem abastecido',
+      CUSTOM: 'Mensagem automática personalizada',
+    };
+
     const ctx = [
       basePrompt,
       '',
@@ -324,6 +342,11 @@ export class AgentRuntimeService {
       customer.daysOverdue > 0 ? `⚠️ Está ${customer.daysOverdue} dias atrasado na previsão de recompra.` : '',
       customer.salesperson?.name ? `Vendedor responsável: ${customer.salesperson.name}` : '',
       '',
+      lastAutomation ? '— CONTEXTO DA AUTOMAÇÃO —' : '',
+      lastAutomation ? `Esta conversa foi iniciada por um disparo automático de "${triggerLabels[lastAutomation.trigger] ?? lastAutomation.trigger}" (template: "${lastAutomation.templateName}"), enviado em ${lastAutomation.sentAt.toLocaleDateString('pt-BR')} às ${lastAutomation.sentAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.` : '',
+      lastAutomation ? `Mensagem enviada ao cliente: "${lastAutomation.content}"` : '',
+      lastAutomation ? 'Use este contexto para entender o motivo do contato e responder de forma coerente.' : '',
+      '',
       '— LEMBRE-SE —',
       '• Seja conciso. Mensagens curtas funcionam melhor no WhatsApp.',
       '• Use português brasileiro natural.',
@@ -331,6 +354,31 @@ export class AgentRuntimeService {
       '• Quando o cliente pedir para falar com um humano, chame transfer_to_human imediatamente.',
     ].filter(Boolean).join('\n');
     return ctx;
+  }
+
+  /**
+   * Busca a última mensagem automática (com template) enviada ao cliente
+   * para dar contexto à IA sobre o que originou a conversa.
+   */
+  private async getLastAutomationContext(customerId: string) {
+    const interaction = await this.prisma.interaction.findFirst({
+      where: {
+        customerId,
+        direction: InteractionDirection.OUTBOUND,
+        templateId: { not: null },
+      },
+      orderBy: { createdAt: 'desc' },
+      include: { template: { select: { name: true, trigger: true } } },
+    });
+
+    if (!interaction?.template) return null;
+
+    return {
+      templateName: interaction.template.name,
+      trigger: interaction.template.trigger,
+      sentAt: interaction.createdAt,
+      content: interaction.content,
+    };
   }
 
   private async recordUsage(
