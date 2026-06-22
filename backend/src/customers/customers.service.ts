@@ -66,8 +66,9 @@ export class CustomersService {
 
     await this.forecast.recalculateForCustomer(customer.id);
 
-    // Dispara primeiro contato imediatamente se o cliente tem whatsapp
+    // Dispara primeiro contato se o cliente tem whatsapp
     if (customer.whatsapp) {
+      const delayMs = (dto.firstContactDelayMinutes ?? 0) * 60 * 1000;
       await this.replenishmentQueue.add(
         JOBS.SEND_REMINDER,
         {
@@ -77,6 +78,7 @@ export class CustomersService {
         },
         {
           jobId: `first-contact-${customer.id}`,
+          delay: delayMs,
           attempts: 3,
           backoff: { type: 'exponential', delay: 5_000 },
         },

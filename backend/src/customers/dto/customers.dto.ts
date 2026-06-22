@@ -77,6 +77,10 @@ export class CreateCustomerDto {
   @ApiPropertyOptional({ description: 'Intervalo manual em dias (sobrescreve o automático)' })
   @IsOptional() @Type(() => Number) @IsInt() @Min(1)
   manualIntervalDays?: number;
+
+  @ApiPropertyOptional({ description: 'Delay em minutos antes de disparar o primeiro contato via WhatsApp (útil em importações em massa)' })
+  @IsOptional() @Type(() => Number) @IsInt() @Min(0)
+  firstContactDelayMinutes?: number;
 }
 
 export class UpdateCustomerDto extends PartialType(CreateCustomerDto) {}

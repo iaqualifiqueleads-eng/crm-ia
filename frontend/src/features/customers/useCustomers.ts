@@ -89,6 +89,7 @@ export interface CreateCustomerInput {
   forecastMode?: ForecastMode;
   manualIntervalDays?: number;
   salespersonId?: string;
+  firstContactDelayMinutes?: number;
 }
 
 export function useCreateCustomer() {
