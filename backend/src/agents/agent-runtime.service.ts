@@ -324,9 +324,9 @@ export class AgentRuntimeService {
       FIRST_CONTACT: 'Primeiro contato',
       REPLENISHMENT_REMINDER: 'Lembrete de reposição',
       REPLENISHMENT_OVERDUE: 'Reposição em atraso',
-      RETRY_1H: 'Reenvio automático (após 1h)',
-      RETRY_3H: 'Reenvio automático (após 3h)',
-      RETRY_24H: 'Reenvio automático (após 24h)',
+      RETRY1: 'Reenvio automático (após 24h)',
+      RETRY2: 'Reenvio automático (após 48h)',
+      RETRY3: 'Reenvio automático (após 72h)',
       WELL_STOCKED: 'Cliente bem abastecido',
       CUSTOM: 'Mensagem automática personalizada',
     };
