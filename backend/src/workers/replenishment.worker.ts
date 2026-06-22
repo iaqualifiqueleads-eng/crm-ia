@@ -8,6 +8,7 @@ import { ForecastService } from '../forecast/forecast.service';
 import { InteractionsService } from '../interactions/interactions.service';
 import { AutomationService } from '../automation/automation.service';
 import { TasksService } from '../tasks/tasks.service';
+import { msUntilBusinessHours } from '../common/business-hours.util';
 import {
   QUEUES,
   JOBS,
@@ -26,6 +27,7 @@ export class ReplenishmentWorker extends WorkerHost {
     private readonly automation: AutomationService,
     private readonly tasks: TasksService,
     @InjectQueue(QUEUES.MESSAGE_RETRY) private readonly retryQueue: Queue,
+    @InjectQueue(QUEUES.REPLENISHMENT) private readonly replenishmentQueue: Queue,
   ) { super(); }
 
   async process(job: Job): Promise<any> {
@@ -102,6 +104,21 @@ export class ReplenishmentWorker extends WorkerHost {
   // =========================================================
   private async runSendReminder(data: SendReminderJobData) {
     const config = await this.automation.getReplenishmentConfig();
+
+    // Verifica horário comercial (07:00–20:00 BRT)
+    const delayMs = msUntilBusinessHours();
+    if (delayMs > 0) {
+      const resumeAt = new Date(Date.now() + delayMs);
+      this.logger.log(
+        `Fora do horário comercial — reagendando SEND_REMINDER para ${resumeAt.toISOString()} (customer=${data.customerId})`,
+      );
+      await this.replenishmentQueue.add(JOBS.SEND_REMINDER, data, {
+        delay: delayMs,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 5_000 },
+      });
+      return { rescheduled: true, resumeAt };
+    }
 
     try {
       const interaction = await this.interactions.sendAutomatedMessage({

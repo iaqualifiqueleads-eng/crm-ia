@@ -14,6 +14,7 @@ import { InteractionsService } from '../interactions/interactions.service';
 import { AutomationService } from '../automation/automation.service';
 import { TasksService } from '../tasks/tasks.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { msUntilBusinessHours } from '../common/business-hours.util';
 import { QUEUES, JOBS, CheckRetryJobData } from './workers.types';
 
 /**
@@ -92,6 +93,21 @@ export class MessageRetryWorker extends WorkerHost {
     if (!customer) {
       this.logger.warn(`Cliente ${data.customerId} não existe mais`);
       return { stopped: true, reason: 'customer-gone' };
+    }
+
+    // Verifica horário comercial (07:00–20:00 BRT) antes de reenviar
+    const businessDelayMs = msUntilBusinessHours();
+    if (businessDelayMs > 0) {
+      const resumeAt = new Date(Date.now() + businessDelayMs);
+      this.logger.log(
+        `Fora do horário comercial — reagendando CHECK_RETRY step=${data.retryStep} para ${resumeAt.toISOString()} (customer=${data.customerId})`,
+      );
+      await this.retryQueue.add(JOBS.CHECK_RETRY, data, {
+        delay: businessDelayMs,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 60_000 },
+      });
+      return { rescheduled: true, resumeAt };
     }
 
     // Decide próximo passo
