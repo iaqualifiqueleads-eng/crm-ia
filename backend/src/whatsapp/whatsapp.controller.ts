@@ -26,7 +26,7 @@ export class WhatsAppController {
     @Body() payload: WahaWebhookDto,
   ) {
     if (this.webhookSecret && secret !== this.webhookSecret) {
-      this.logger.warn('Webhook rejeitado: x-webhook-secret inválido');
+      this.logger.warn(`Webhook rejeitado: recebido="${secret}" esperado="${this.webhookSecret}"`);
       throw new UnauthorizedException('invalid-secret');
     }
     this.logger.debug(`Webhook WAHA recebido: event=${payload?.event}`);
