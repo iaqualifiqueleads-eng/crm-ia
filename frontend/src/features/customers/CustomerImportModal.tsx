@@ -45,7 +45,7 @@ const COLUMNS: Array<{ header: string; field: keyof CreateCustomerInput; require
   { header: 'cnpj',          field: 'cnpj' },
   { header: 'email',         field: 'email' },
   { header: 'telefone',      field: 'phone' },
-  { header: 'whatsapp',      field: 'whatsapp' },
+  { header: 'whatsapp',      field: 'whatsapp',       required: true },
   { header: 'contato_nome',  field: 'contactName' },
   { header: 'contato_cargo', field: 'contactRole' },
   { header: 'cidade',        field: 'city' },
@@ -81,7 +81,8 @@ function validateRow(raw: Record<string, string>): { data: CreateCustomerInput |
   if (phone && phone.length > 30) errors.push('Telefone: máx 30 caracteres');
 
   const whatsapp = raw['whatsapp']?.trim();
-  if (whatsapp && whatsapp.length > 30) errors.push('WhatsApp: máx 30 caracteres');
+  if (!whatsapp) errors.push('WhatsApp é obrigatório');
+  else if (whatsapp.length > 30) errors.push('WhatsApp: máx 30 caracteres');
 
   const statusRaw = raw['status']?.trim().toUpperCase() as CustomerStatus;
   if (statusRaw && !VALID_STATUS.includes(statusRaw)) {
@@ -177,7 +178,8 @@ export function CustomerImportModal({ open, onClose }: Props) {
 
       const headers = parsed[0].map((h) => h.toLowerCase().trim());
       const knownHeaders = COLUMNS.map((c) => c.header);
-      const missing = knownHeaders.filter((h) => h === 'razao_social' && !headers.includes(h));
+      const requiredHeaders = COLUMNS.filter((c) => c.required).map((c) => c.header);
+      const missing = requiredHeaders.filter((h) => !headers.includes(h));
       if (missing.length) { setHeaderError(`Coluna obrigatória ausente: ${missing.join(', ')}`); return; }
 
       setHeaderError('');
