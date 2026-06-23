@@ -71,7 +71,7 @@ export class WhatsAppController {
           body: JSON.stringify({
             nome: 'Gabriel Boldi',
             whatsapp: '+5527992788660',
-            mensagem: `Sessão: ${session} | Número: ${connectedNumber} | Status: ${status}`,
+            mensagem: `⚠️❌ Sessão: ${session} | Número: ${connectedNumber} | Status: ${status}`,
           }),
         });
         this.logger.log(`Notificação enviada ao Replay Agent para status=${status}`);
