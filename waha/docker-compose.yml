@@ -25,6 +25,10 @@ services:
       # Formato novo (WAHA 2026+)
       WAHA_WEBHOOK_URL: https://clskwf33f0imzlqdgav7wt0t.2.25.194.252.sslip.io/api/whatsapp/webhook
       WAHA_WEBHOOK_EVENTS: message,message.any
+
+      # Notificação de sessão desconectada → backend → Make
+      WAHA_WEBHOOK_URL2: https://clskwf33f0imzlqdgav7wt0t.2.25.194.252.sslip.io/api/whatsapp/session-status
+      WAHA_WEBHOOK_EVENTS2: session.status
     volumes:
       - waha_sessions:/app/.sessions
 
