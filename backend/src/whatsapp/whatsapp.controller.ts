@@ -10,14 +10,14 @@ import { WahaWebhookDto } from './dto/waha-webhook.dto';
 export class WhatsAppController {
   private readonly logger = new Logger(WhatsAppController.name);
   private readonly webhookSecret: string;
-  private readonly makeWebhookUrl: string;
+  private readonly replayAgentWebhookUrl: string;
 
   constructor(
     private readonly service: WhatsAppWebhookService,
     config: ConfigService,
   ) {
     this.webhookSecret = config.get<string>('WAHA_WEBHOOK_SECRET') ?? '';
-    this.makeWebhookUrl = config.get<string>('MAKE_WEBHOOK_URL') ?? '';
+    this.replayAgentWebhookUrl = config.get<string>('REPLAY_AGENTE_NOTIFICAR_INSTANCIA_WEBHOOK_URL') ?? '';
   }
 
   @Public()
@@ -45,14 +45,14 @@ export class WhatsAppController {
 
     this.logger.log(`Session status recebido: session=${session} status=${status}`);
 
-    // Notifica o Make apenas em casos de falha/desconexão
+    // Notifica o Replay Agent apenas em casos de falha/desconexão
     const alertStatuses = ['STOPPED', 'FAILED', 'SCAN_QR_CODE'];
-    if (this.makeWebhookUrl && alertStatuses.includes(status.toUpperCase())) {
+    if (this.replayAgentWebhookUrl && alertStatuses.includes(status.toUpperCase())) {
       try {
         // Busca o número conectado na sessão
         let connectedNumber = 'desconhecido';
         try {
-          const wahaUrl = this.makeWebhookUrl && process.env.WAHA_URL;
+          const wahaUrl = this.replayAgentWebhookUrl && process.env.WAHA_URL;
           if (process.env.WAHA_URL) {
             const meRes = await fetch(
               `${process.env.WAHA_URL.replace(/\/$/, '')}/api/sessions/${session}/me`,
@@ -65,7 +65,7 @@ export class WhatsAppController {
           }
         } catch (_) {}
 
-        await fetch(this.makeWebhookUrl, {
+        await fetch(this.replayAgentWebhookUrl, {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({
@@ -74,9 +74,9 @@ export class WhatsAppController {
             mensagem: `Sessão: ${session} | Número: ${connectedNumber} | Status: ${status}`,
           }),
         });
-        this.logger.log(`Notificação enviada ao Make para status=${status}`);
+        this.logger.log(`Notificação enviada ao Replay Agent para status=${status}`);
       } catch (err) {
-        this.logger.error(`Falha ao notificar Make: ${err}`);
+        this.logger.error(`Falha ao notificar Replay Agent: ${err}`);
       }
     }
 
