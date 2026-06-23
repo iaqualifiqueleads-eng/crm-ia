@@ -122,6 +122,7 @@ export class CustomersService {
               { cnpj: { contains: filters.search } },
               { contactName: { contains: filters.search } },
               { email: { contains: filters.search } },
+              { whatsapp: { contains: filters.search } },
             ],
           }
         : {}),
