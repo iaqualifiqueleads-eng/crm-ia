@@ -3,6 +3,7 @@ import { Logger } from '@nestjs/common';
 import { Job, Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
 
+import { TaskType, TaskPriority } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ForecastService } from '../forecast/forecast.service';
 import { InteractionsService } from '../interactions/interactions.service';
@@ -126,6 +127,34 @@ export class ReplenishmentWorker extends WorkerHost {
         templateId: data.templateId,
         automationRef: data.automationRef,
       });
+
+      // Se o envio falhou (conta Business sem LID conhecido, número inválido, etc.)
+      // cria tarefa para o vendedor iniciar o contato manualmente
+      if (interaction.status === 'FAILED') {
+        const customer = await this.prisma.customer.findUnique({
+          where: { id: data.customerId },
+          select: { companyName: true, salespersonId: true, whatsapp: true },
+        });
+        if (customer?.salespersonId) {
+          await this.tasks.createAutomatic({
+            title: `Iniciar contato manual: ${customer.companyName}`,
+            description:
+              `A IA tentou enviar mensagem via WhatsApp (${customer.whatsapp}) mas falhou. ` +
+              `Provável causa: conta WhatsApp Business sem contato anterior. ` +
+              `Envie uma mensagem manualmente pelo chip para abrir a conversa.`,
+            type: TaskType.CALL,
+            priority: TaskPriority.HIGH,
+            assigneeId: customer.salespersonId,
+            customerId: data.customerId,
+            automationRef: `${data.automationRef}_manual_contact`,
+            dueDate: new Date(),
+          });
+          this.logger.warn(
+            `Envio falhou para customer=${data.customerId} — tarefa de contato manual criada`,
+          );
+        }
+        return { ok: false, failed: true, interactionId: interaction.id };
+      }
 
       // Agenda primeira verificação de retry (1h depois, por padrão)
       const retryDelays = config.retryDelaysHours ?? [1, 3, 24];
