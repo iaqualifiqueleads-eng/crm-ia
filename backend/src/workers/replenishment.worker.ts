@@ -1,5 +1,5 @@
 import { Processor, WorkerHost, OnWorkerEvent } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
+import { Logger, Inject } from '@nestjs/common';
 import { Job, Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
 
@@ -10,6 +10,7 @@ import { InteractionsService } from '../interactions/interactions.service';
 import { AutomationService } from '../automation/automation.service';
 import { TasksService } from '../tasks/tasks.service';
 import { msUntilBusinessHours } from '../common/business-hours.util';
+import { MESSAGING_PROVIDER, MessagingProvider } from '../messaging/messaging.types';
 import {
   QUEUES,
   JOBS,
@@ -29,6 +30,7 @@ export class ReplenishmentWorker extends WorkerHost {
     private readonly tasks: TasksService,
     @InjectQueue(QUEUES.MESSAGE_RETRY) private readonly retryQueue: Queue,
     @InjectQueue(QUEUES.REPLENISHMENT) private readonly replenishmentQueue: Queue,
+    @Inject(MESSAGING_PROVIDER) private readonly messaging: MessagingProvider,
   ) { super(); }
 
   async process(job: Job): Promise<any> {
@@ -152,6 +154,28 @@ export class ReplenishmentWorker extends WorkerHost {
           this.logger.warn(
             `Envio falhou para customer=${data.customerId} — tarefa de contato manual criada`,
           );
+
+          // Notifica o supervisor via WhatsApp
+          const salesperson = await this.prisma.user.findUnique({
+            where: { id: customer.salespersonId },
+            select: { name: true, supervisorId: true },
+          });
+          if (salesperson?.supervisorId) {
+            const supervisor = await this.prisma.user.findUnique({
+              where: { id: salesperson.supervisorId },
+              select: { phone: true },
+            });
+            if (supervisor?.phone) {
+              const msg =
+                `⚠️ *Contato manual necessário: ${customer.companyName}*\n\n` +
+                `A IA tentou enviar mensagem via WhatsApp (${customer.whatsapp ?? '—'}) mas falhou.\n` +
+                `Provável causa: conta WhatsApp Business sem contato anterior.\n\n` +
+                `O vendedor ${salesperson.name} precisa enviar uma mensagem manualmente pelo chip para abrir a conversa.`;
+              this.messaging.send({ to: supervisor.phone, text: msg }).catch((err) => {
+                this.logger.warn(`Falha ao notificar supervisor via WhatsApp: ${err?.message ?? err}`);
+              });
+            }
+          }
         }
         return { ok: false, failed: true, interactionId: interaction.id };
       }
