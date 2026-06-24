@@ -3,6 +3,7 @@ import { AgentsService } from './agents.service';
 import { AgentsController } from './agents.controller';
 import { AgentRuntimeService } from './agent-runtime.service';
 import { ToolRegistry } from './tools/tool.registry';
+import { MessagingModule } from '../messaging/messaging.module';
 import {
   RegisterOrderTool,
   ScheduleTaskTool,
@@ -15,6 +16,7 @@ import {
 
 @Global()
 @Module({
+  imports: [MessagingModule],
   controllers: [AgentsController],
   providers: [
     AgentsService,

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import {
   CustomerStatus, ForecastMode, OrderChannel,
   TaskPriority, TaskType,
@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { ForecastService } from '../../forecast/forecast.service';
 import { NotificationsService } from '../../notifications/notifications.service';
+import { MESSAGING_PROVIDER, MessagingProvider } from '../../messaging/messaging.types';
 import { AgentTool, ToolExecutionContext, ToolExecutionResult } from './tool.types';
 
 // ====================================================================
@@ -242,15 +243,18 @@ export class TransferToHumanTool implements AgentTool {
     required: ['reason', 'summary'],
   };
 
+  private readonly logger = new Logger(TransferToHumanTool.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    @Inject(MESSAGING_PROVIDER) private readonly messaging: MessagingProvider,
   ) {}
 
   async execute(args: any, ctx: ToolExecutionContext): Promise<ToolExecutionResult> {
     const customer = await this.prisma.customer.findUnique({
       where: { id: ctx.customerId },
-      select: { salespersonId: true, companyName: true },
+      select: { salespersonId: true, companyName: true, whatsapp: true },
     });
     if (!customer) throw new Error('Cliente não encontrado');
 
@@ -279,6 +283,27 @@ export class TransferToHumanTool implements AgentTool {
       customerId: ctx.customerId,
       taskId: task.id,
     });
+
+    if (customer.salespersonId) {
+      const salesperson = await this.prisma.user.findUnique({
+        where: { id: customer.salespersonId },
+        select: { phone: true, name: true },
+      });
+
+      if (salesperson?.phone) {
+        const clienteWpp = customer.whatsapp ? `\n📱 WhatsApp do cliente: ${customer.whatsapp}` : '';
+        const msg =
+          `🤝 *Atender ${customer.companyName} — IA solicitou transferência*\n` +
+          `Auto\n\n` +
+          `MOTIVO: ${args.reason}\n\n` +
+          `RESUMO DA CONVERSA: ${args.summary}` +
+          clienteWpp;
+
+        this.messaging.send({ to: salesperson.phone, text: msg }).catch((err) => {
+          this.logger.warn(`Falha ao enviar WhatsApp para vendedor: ${err?.message ?? err}`);
+        });
+      }
+    }
 
     return {
       summary: `Transferido para ${customer.salespersonId} (motivo: ${args.reason.slice(0, 50)}...)`,
