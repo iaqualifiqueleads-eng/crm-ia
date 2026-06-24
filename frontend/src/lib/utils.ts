@@ -36,7 +36,9 @@ export function relativeDays(target: string | Date | null | undefined): number |
   if (!target) return null;
   const t = typeof target === 'string' ? new Date(target) : target;
   if (Number.isNaN(t.getTime())) return null;
-  const diff = Math.floor((t.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const due = new Date(t); due.setHours(0, 0, 0, 0);
+  const diff = Math.round((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
   return diff;
 }
 
