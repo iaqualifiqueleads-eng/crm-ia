@@ -4,6 +4,7 @@ import { Queue } from 'bullmq';
 import {
   InteractionDirection, InteractionStatus, InteractionType,
 } from '@prisma/client';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { QUEUES, JOBS } from './whatsapp.queue';
 
@@ -21,10 +22,17 @@ interface ParsedMessage {
 export class WhatsAppWebhookService {
   private readonly logger = new Logger(WhatsAppWebhookService.name);
 
+  private readonly wahaUrl: string;
+  private readonly wahaApiKey: string;
+
   constructor(
     private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
     @InjectQueue(QUEUES.AGENT_RESPONSE) private readonly agentQueue: Queue,
-  ) { }
+  ) {
+    this.wahaUrl = (config.get<string>('WAHA_URL') ?? '').replace(/\/$/, '');
+    this.wahaApiKey = config.get<string>('WAHA_API_KEY') ?? '';
+  }
 
   /**
    * Entry point — recebe qualquer payload da WAHA e processa
@@ -39,7 +47,7 @@ export class WhatsAppWebhookService {
       return { accepted: false, reason: 'event-not-supported' };
     }
 
-    const parsed = this.parseMessage(payload);
+    const parsed = await this.parseMessage(payload);
     if (!parsed) {
       this.logger.debug('Payload de mensagem não reconhecido — ignorado');
       return { accepted: false, reason: 'unparseable' };
@@ -137,17 +145,20 @@ export class WhatsAppWebhookService {
    * - payload.fromMe -> boolean
    * - payload.timestamp -> unix timestamp (segundos)
    */
-  private parseMessage(payload: any): ParsedMessage | null {
+  private async parseMessage(payload: any): Promise<ParsedMessage | null> {
     const data = payload?.payload;
     if (!data) return null;
 
     let fromRaw = String(data.from || '');
 
-    // Se o 'from' termina em @lid, busca o número real em _data.key.remoteJidAlt
     if (fromRaw.endsWith('@lid')) {
+      // NOWEB: tenta _data.key.remoteJidAlt
       const remoteJidAlt = data?._data?.key?.remoteJidAlt;
       if (remoteJidAlt) {
-        fromRaw = remoteJidAlt; // ex: "5527998955699@s.whatsapp.net"
+        fromRaw = remoteJidAlt;
+      } else if (this.wahaUrl) {
+        // WEBJS: resolve LID via API do WAHA
+        fromRaw = await this.resolveLidToPhone(fromRaw) ?? fromRaw;
       }
     }
 
@@ -160,6 +171,28 @@ export class WhatsAppWebhookService {
       fromMe: !!data.fromMe,
       timestamp: data.timestamp ? new Date(data.timestamp * 1000) : undefined,
     };
+  }
+
+  /**
+   * Chama a API do WAHA para resolver um LID (@lid) ao número de telefone real.
+   * Retorna o número no formato "5527XXXXXXXXX@c.us" ou null se não resolver.
+   */
+  private async resolveLidToPhone(lid: string): Promise<string | null> {
+    try {
+      const res = await fetch(
+        `${this.wahaUrl}/api/default/contacts/${encodeURIComponent(lid)}`,
+        { headers: { 'X-Api-Key': this.wahaApiKey } },
+      );
+      if (!res.ok) return null;
+      const contact: any = await res.json();
+      // WAHA retorna o número real em 'id' ou 'number'
+      const phone = contact?.id ?? contact?.number ?? null;
+      if (phone) this.logger.debug(`LID ${lid} resolvido para ${phone}`);
+      return phone;
+    } catch (err) {
+      this.logger.warn(`Falha ao resolver LID ${lid}: ${err}`);
+      return null;
+    }
   }
 
   /**
