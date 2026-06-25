@@ -42,10 +42,11 @@ export function CustomerFormModal({ open, onClose, customer, onDelete }: Props) 
 
   const [form, setForm] = useState<CreateCustomerInput>(empty);
   const [whatsappError, setWhatsappError] = useState<string | null>(null);
+  const [whatsappChecking, setWhatsappChecking] = useState(false);
   const whatsappDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!open) { setConfirmDelete(false); setWhatsappError(null); return; }
+    if (!open) { setConfirmDelete(false); setWhatsappError(null); setWhatsappChecking(false); return; }
     setForm(customer ? {
       companyName: customer.companyName,
       tradeName: customer.tradeName ?? undefined,
@@ -71,9 +72,11 @@ export function CustomerFormModal({ open, onClose, customer, onDelete }: Props) 
   const handleWhatsAppChange = (value: string) => {
     set('whatsapp', value);
     setWhatsappError(null);
+    setWhatsappChecking(false);
     if (whatsappDebounce.current) clearTimeout(whatsappDebounce.current);
     const digits = value.replace(/\D/g, '');
     if (digits.length < 10) return;
+    setWhatsappChecking(true);
     whatsappDebounce.current = setTimeout(async () => {
       try {
         const { data } = await api.get<{ numberExists: boolean }>('/whatsapp/check-number', {
@@ -82,7 +85,8 @@ export function CustomerFormModal({ open, onClose, customer, onDelete }: Props) 
         if (!data.numberExists) {
           setWhatsappError('Esse número de telefone não está no WhatsApp');
         }
-      } catch { /* silencioso — não bloqueia o cadastro */ }
+      } catch { /* silencioso */ }
+      finally { setWhatsappChecking(false); }
     }, 800);
   };
 
@@ -107,6 +111,7 @@ export function CustomerFormModal({ open, onClose, customer, onDelete }: Props) 
   };
 
   const loading = create.isPending || update.isPending;
+  const whatsappInvalid = !isEdit && (!!whatsappError || whatsappChecking || !form.whatsapp?.trim());
 
   return (
     <Modal
@@ -151,8 +156,8 @@ export function CustomerFormModal({ open, onClose, customer, onDelete }: Props) 
             </div>
           )}
           <Button variant="ghost" onClick={onClose} type="button">Cancelar</Button>
-          <Button onClick={onSubmit as any} loading={loading}>
-            {isEdit ? 'Salvar alterações' : 'Cadastrar'}
+          <Button onClick={onSubmit as any} loading={loading} disabled={whatsappInvalid}>
+            {isEdit ? 'Salvar alterações' : whatsappChecking ? 'Verificando WhatsApp…' : 'Cadastrar'}
           </Button>
         </>
       }
