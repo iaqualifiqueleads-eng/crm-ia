@@ -1,4 +1,4 @@
-import { Body, Controller, Headers, Logger, Post, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Logger, Post, Query, UnauthorizedException } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { Public } from '../common/decorators/public.decorator';
@@ -11,6 +11,8 @@ export class WhatsAppController {
   private readonly logger = new Logger(WhatsAppController.name);
   private readonly webhookSecret: string;
   private readonly replayAgentWebhookUrl: string;
+  private readonly wahaUrl: string;
+  private readonly wahaApiKey: string;
 
   constructor(
     private readonly service: WhatsAppWebhookService,
@@ -18,6 +20,25 @@ export class WhatsAppController {
   ) {
     this.webhookSecret = config.get<string>('WAHA_WEBHOOK_SECRET') ?? '';
     this.replayAgentWebhookUrl = config.get<string>('REPLAY_AGENTE_NOTIFICAR_INSTANCIA_WEBHOOK_URL') ?? '';
+    this.wahaUrl = (config.get<string>('WAHA_URL') ?? '').replace(/\/$/, '');
+    this.wahaApiKey = config.get<string>('WAHA_API_KEY') ?? '';
+  }
+
+  @Get('check-number')
+  @ApiOperation({ summary: 'Verifica se um número tem WhatsApp' })
+  async checkNumber(@Query('phone') phone: string) {
+    if (!phone) return { numberExists: false };
+    try {
+      const res = await fetch(
+        `${this.wahaUrl}/api/contacts/check-exists?phone=${encodeURIComponent(phone)}&session=default`,
+        { headers: { 'X-Api-Key': this.wahaApiKey } },
+      );
+      if (!res.ok) return { numberExists: false };
+      const data: any = await res.json();
+      return { numberExists: !!data?.numberExists };
+    } catch {
+      return { numberExists: false };
+    }
   }
 
   @Public()

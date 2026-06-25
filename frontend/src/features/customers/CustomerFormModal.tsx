@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
@@ -9,6 +9,7 @@ import {
   useDeleteCustomer,
   type CreateCustomerInput,
 } from '@/features/customers/useCustomers';
+import { api } from '@/services/api';
 import type { Customer, CustomerStatus, ForecastMode } from '@/types';
 
 interface Props {
@@ -40,9 +41,11 @@ export function CustomerFormModal({ open, onClose, customer, onDelete }: Props) 
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const [form, setForm] = useState<CreateCustomerInput>(empty);
+  const [whatsappError, setWhatsappError] = useState<string | null>(null);
+  const whatsappDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!open) { setConfirmDelete(false); return; }
+    if (!open) { setConfirmDelete(false); setWhatsappError(null); return; }
     setForm(customer ? {
       companyName: customer.companyName,
       tradeName: customer.tradeName ?? undefined,
@@ -64,6 +67,24 @@ export function CustomerFormModal({ open, onClose, customer, onDelete }: Props) 
 
   const set = <K extends keyof CreateCustomerInput>(k: K, v: CreateCustomerInput[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
+
+  const handleWhatsAppChange = (value: string) => {
+    set('whatsapp', value);
+    setWhatsappError(null);
+    if (whatsappDebounce.current) clearTimeout(whatsappDebounce.current);
+    const digits = value.replace(/\D/g, '');
+    if (digits.length < 10) return;
+    whatsappDebounce.current = setTimeout(async () => {
+      try {
+        const { data } = await api.get<{ numberExists: boolean }>('/whatsapp/check-number', {
+          params: { phone: digits },
+        });
+        if (!data.numberExists) {
+          setWhatsappError('Esse número de telefone não está no WhatsApp');
+        }
+      } catch { /* silencioso — não bloqueia o cadastro */ }
+    }, 800);
+  };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -183,7 +204,15 @@ export function CustomerFormModal({ open, onClose, customer, onDelete }: Props) 
             </div>
             <div className="md:col-span-2">
               <Label>WhatsApp (E.164)</Label>
-              <Input value={form.whatsapp ?? ''} onChange={(e) => set('whatsapp', e.target.value)} placeholder="5527999998888" />
+              <Input
+                value={form.whatsapp ?? ''}
+                onChange={(e) => handleWhatsAppChange(e.target.value)}
+                placeholder="5527999998888"
+                className={whatsappError ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}
+              />
+              {whatsappError && (
+                <p className="mt-1 text-xs text-red-500">{whatsappError}</p>
+              )}
             </div>
             <div>
               <Label>Cidade</Label>
