@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, ChevronLeft, ChevronRight, Upload } from 'lucide-react';
+import { Plus, Search, Filter, ChevronLeft, ChevronRight, Upload, Download } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card } from '@/components/ui/Card';
@@ -11,6 +11,7 @@ import { EmptyState, LoadingRow } from '@/components/ui/EmptyState';
 import { useCustomers } from '@/features/customers/useCustomers';
 import { CustomerFormModal } from '@/features/customers/CustomerFormModal';
 import { CustomerImportModal } from '@/features/customers/CustomerImportModal';
+import { api } from '@/services/api';
 import { formatCurrency, formatDate, getInitials, cn } from '@/lib/utils';
 import type { CustomerStatus } from '@/types';
 
@@ -22,6 +23,23 @@ export function CustomersPage() {
   const [onlyOverdue, setOnlyOverdue] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const { data } = await api.get('/customers/export', {
+        params: { search: search || undefined, status: status || undefined, onlyOverdue: onlyOverdue || undefined },
+        responseType: 'blob',
+      });
+      const url = URL.createObjectURL(new Blob([data], { type: 'text/csv;charset=utf-8;' }));
+      const a = document.createElement('a');
+      a.href = url; a.download = 'clientes.csv'; a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   const { data, isLoading, isFetching } = useCustomers({
     page, limit: 20, search: search || undefined,
@@ -36,6 +54,9 @@ export function CustomersPage() {
         description="A lista respeita o seu escopo hierárquico. Gerentes e supervisores visualizam toda a equipe; vendedores veem apenas a própria carteira."
         actions={
           <div className="flex items-center gap-2">
+            <Button variant="ghost" onClick={handleExport} disabled={exporting} icon={<Download className="h-4 w-4" />}>
+              {exporting ? 'Exportando…' : 'Exportar CSV'}
+            </Button>
             <Button variant="ghost" onClick={() => setImportOpen(true)} icon={<Upload className="h-4 w-4" />}>
               Importar CSV
             </Button>

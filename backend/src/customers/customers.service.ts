@@ -90,6 +90,82 @@ export class CustomersService {
 
 
   // -------------------------------------------------------
+  // EXPORT CSV
+  // -------------------------------------------------------
+  async exportCsv(actor: CurrentUserPayload, filters: CustomerFiltersDto): Promise<string> {
+    const visible = await getVisibleSalespersonIds(this.prisma, actor);
+
+    let salespersonFilter: Prisma.StringFilter | undefined;
+    if (filters.salespersonId) {
+      if (!visible.includes(filters.salespersonId)) throw new ForbiddenException('Vendedor fora do seu escopo');
+      salespersonFilter = { equals: filters.salespersonId };
+    } else {
+      salespersonFilter = { in: visible };
+    }
+
+    const where: Prisma.CustomerWhereInput = {
+      deletedAt: null,
+      salespersonId: salespersonFilter,
+      ...(filters.status ? { status: filters.status } : {}),
+      ...(filters.onlyOverdue ? { daysOverdue: { gt: 0 } } : {}),
+      ...(filters.search
+        ? {
+            OR: [
+              { companyName: { contains: filters.search } },
+              { tradeName: { contains: filters.search } },
+              { cnpj: { contains: filters.search } },
+              { contactName: { contains: filters.search } },
+              { email: { contains: filters.search } },
+              { whatsapp: { contains: filters.search } },
+            ],
+          }
+        : {}),
+    };
+
+    const rows = await this.prisma.customer.findMany({
+      where,
+      include: { salesperson: { select: { name: true } } },
+      orderBy: [{ companyName: 'asc' }],
+    });
+
+    const escape = (v: string | null | undefined) => {
+      if (v == null) return '';
+      const s = String(v);
+      return s.includes(',') || s.includes('"') || s.includes('\n')
+        ? `"${s.replace(/"/g, '""')}"`
+        : s;
+    };
+
+    const headers = [
+      'Empresa', 'Nome Fantasia', 'CNPJ', 'Contato', 'Cargo', 'E-mail',
+      'Telefone', 'WhatsApp', 'Cidade', 'Estado', 'Status', 'Origem',
+      'Vendedor', 'Receita Total', 'Pedidos', 'Próxima Reposição', 'Dias Atrasado',
+    ].join(',');
+
+    const lines = rows.map((c) => [
+      escape(c.companyName),
+      escape(c.tradeName),
+      escape(c.cnpj),
+      escape(c.contactName),
+      escape(c.contactRole),
+      escape(c.email),
+      escape(c.phone),
+      escape(c.whatsapp),
+      escape(c.city),
+      escape(c.state),
+      escape(c.status),
+      escape(c.origin),
+      escape(c.salesperson?.name),
+      c.totalRevenue?.toFixed(2) ?? '',
+      String(c.totalOrders ?? 0),
+      c.nextReplenishmentAt ? c.nextReplenishmentAt.toISOString().split('T')[0] : '',
+      String(c.daysOverdue ?? 0),
+    ].join(','));
+
+    return [headers, ...lines].join('\r\n');
+  }
+
+  // -------------------------------------------------------
   // LIST
   // -------------------------------------------------------
   async findAll(actor: CurrentUserPayload, filters: CustomerFiltersDto) {

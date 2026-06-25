@@ -8,7 +8,9 @@ import {
   Patch,
   Post,
   Query,
+  Res,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CustomersService } from './customers.service';
 import {
@@ -29,6 +31,19 @@ export class CustomersController {
   @ApiOperation({ summary: 'Cria um novo cliente' })
   create(@CurrentUser() actor: CurrentUserPayload, @Body() dto: CreateCustomerDto) {
     return this.customersService.create(actor, dto);
+  }
+
+  @Get('export')
+  @ApiOperation({ summary: 'Exporta clientes como CSV' })
+  async exportCsv(
+    @CurrentUser() actor: CurrentUserPayload,
+    @Query() filters: CustomerFiltersDto,
+    @Res() res: Response,
+  ) {
+    const csv = await this.customersService.exportCsv(actor, filters);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="clientes.csv"');
+    res.send('﻿' + csv); // BOM para Excel reconhecer UTF-8
   }
 
   @Get()
