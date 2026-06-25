@@ -124,8 +124,7 @@ export class WhatsAppWebhookService {
       {
         jobId: `debounce-${customer.id}`,
         delay: 15_000, // 15 segundos de silêncio
-        attempts: 2,
-        backoff: { type: 'exponential', delay: 2_000 },
+        attempts: 1,
       },
     );
 

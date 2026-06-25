@@ -84,15 +84,21 @@ export class AgentResponseWorker extends WorkerHost {
 
     // 6. Atualiza o status da Interaction outbound criada pelo runtime
     if (turn.outboundInteractionId) {
-      await this.prisma.interaction.update({
-        where: { id: turn.outboundInteractionId },
-        data: {
-          status: sendResult.status === 'SENT' ? InteractionStatus.SENT : InteractionStatus.FAILED,
-          externalId: sendResult.externalId,
-          sentAt: sendResult.sentAt,
-          failedReason: sendResult.errorMessage,
-        },
-      });
+      try {
+        await this.prisma.interaction.update({
+          where: { id: turn.outboundInteractionId },
+          data: {
+            status: sendResult.status === 'SENT' ? InteractionStatus.SENT : InteractionStatus.FAILED,
+            externalId: sendResult.externalId,
+            sentAt: sendResult.sentAt,
+            failedReason: sendResult.errorMessage,
+          },
+        });
+      } catch (err: any) {
+        // P2002 = externalId duplicado — não é crítico, mensagem já foi enviada
+        if (err?.code !== 'P2002') throw err;
+        this.logger.warn(`externalId duplicado ao atualizar outbound ${turn.outboundInteractionId} — ignorado`);
+      }
     }
 
     return {
