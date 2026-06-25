@@ -86,6 +86,19 @@ export class InteractionsService {
     }
     const destination = customer.whatsapp ?? customer.phone!;
 
+    // Idempotência — se já existe interaction SENT com esse automationRef, retorna sem reenviar
+    const alreadySent = await this.prisma.interaction.findFirst({
+      where: {
+        customerId: input.customerId,
+        automationRef: input.automationRef,
+        status: { in: [InteractionStatus.SENT, InteractionStatus.DELIVERED, InteractionStatus.READ] },
+      },
+    });
+    if (alreadySent) {
+      this.logger.warn(`sendAutomatedMessage: automationRef=${input.automationRef} já enviado — ignorando reenvio`);
+      return alreadySent;
+    }
+
     const template = await this.prisma.messageTemplate.findFirst({
       where: { id: input.templateId, deletedAt: null, isActive: true },
     });
@@ -124,16 +137,29 @@ export class InteractionsService {
       metadata: { customerId: customer.id, automationRef: input.automationRef },
     });
 
-    // Atualiza
-    const updated = await this.prisma.interaction.update({
-      where: { id: interaction.id },
-      data: {
-        externalId: result.externalId,
-        sentAt: result.sentAt,
-        status: result.status === 'SENT' ? InteractionStatus.SENT : InteractionStatus.FAILED,
-        failedReason: result.errorMessage,
-      },
-    });
+    // Atualiza — trata conflito de externalId em caso de retry
+    let updated;
+    try {
+      updated = await this.prisma.interaction.update({
+        where: { id: interaction.id },
+        data: {
+          externalId: result.externalId,
+          sentAt: result.sentAt,
+          status: result.status === 'SENT' ? InteractionStatus.SENT : InteractionStatus.FAILED,
+          failedReason: result.errorMessage,
+        },
+      });
+    } catch (err: any) {
+      if (err?.code === 'P2002') {
+        // externalId já existe — outra interaction já registrou esse envio
+        this.logger.warn(`externalId duplicado no update (${result.externalId}) — buscando interaction existente`);
+        updated = await this.prisma.interaction.findFirst({
+          where: { externalId: result.externalId },
+        }) ?? interaction;
+      } else {
+        throw err;
+      }
+    }
 
     return updated;
   }
