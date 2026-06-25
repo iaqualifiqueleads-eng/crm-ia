@@ -88,11 +88,16 @@ export class MessageRetryWorker extends WorkerHost {
 
     const customer = await this.prisma.customer.findFirst({
       where: { id: data.customerId, deletedAt: null },
-      select: { id: true, companyName: true, salespersonId: true },
+      select: { id: true, companyName: true, salespersonId: true, status: true },
     });
     if (!customer) {
       this.logger.warn(`Cliente ${data.customerId} não existe mais`);
       return { stopped: true, reason: 'customer-gone' };
+    }
+
+    if (customer.status === 'CHURNED') {
+      this.logger.log(`Cliente ${customer.companyName} está CHURNED — ciclo de retry encerrado`);
+      return { stopped: true, reason: 'customer-churned' };
     }
 
     // Verifica horário comercial (07:00–20:00 BRT) antes de reenviar
