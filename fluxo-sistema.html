@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Como Funciona o CRM — Materiais de Construção</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f8f9fb; color: #1a1a2e; padding: 24px; }
+  h1 { text-align: center; font-size: 18px; font-weight: 700; color: #1a1a2e; margin-bottom: 4px; }
+  .subtitle { text-align: center; font-size: 12px; color: #6b7280; margin-bottom: 28px; }
+
+  .flow-wrapper { display: flex; flex-direction: column; gap: 0; align-items: center; }
+
+  /* LANE */
+  .lane { width: 100%; max-width: 860px; display: flex; align-items: flex-start; gap: 0; margin-bottom: 0; }
+  .lane-label { width: 110px; min-width: 110px; padding: 10px 8px; text-align: right; font-size: 11px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; line-height: 1.3; padding-top: 16px; }
+  .lane-content { flex: 1; display: flex; align-items: center; gap: 0; position: relative; padding: 10px 0; }
+
+  /* BOX */
+  .box { display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; padding: 10px 12px; font-size: 12px; font-weight: 600; text-align: center; min-width: 110px; max-width: 140px; min-height: 60px; line-height: 1.3; position: relative; cursor: default; transition: transform 0.15s, box-shadow 0.15s; flex-shrink: 0; }
+  .box:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.13); }
+  .box .icon { font-size: 20px; margin-bottom: 4px; }
+  .box .label { font-size: 11px; font-weight: 700; }
+  .box .sub { font-size: 10px; font-weight: 400; color: inherit; opacity: 0.75; margin-top: 2px; }
+
+  /* ARROW */
+  .arrow { display: flex; align-items: center; color: #9ca3af; font-size: 18px; padding: 0 4px; flex-shrink: 0; }
+  .arrow-down { display: flex; flex-direction: column; align-items: center; color: #9ca3af; font-size: 16px; width: 100%; justify-content: center; margin: -2px 0; }
+
+  /* COLORS */
+  .blue   { background: #dbeafe; color: #1d4ed8; border: 2px solid #93c5fd; }
+  .green  { background: #dcfce7; color: #15803d; border: 2px solid #86efac; }
+  .orange { background: #ffedd5; color: #c2410c; border: 2px solid #fdba74; }
+  .purple { background: #f3e8ff; color: #7e22ce; border: 2px solid #c4b5fd; }
+  .red    { background: #fee2e2; color: #b91c1c; border: 2px solid #fca5a5; }
+  .gray   { background: #f3f4f6; color: #374151; border: 2px solid #d1d5db; }
+  .teal   { background: #ccfbf1; color: #0f766e; border: 2px solid #5eead4; }
+  .yellow { background: #fef9c3; color: #854d0e; border: 2px solid #fde047; }
+
+  /* DIAMOND */
+  .diamond-wrap { display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .diamond { width: 90px; height: 90px; background: #fef9c3; border: 2px solid #fde047; transform: rotate(45deg); display: flex; align-items: center; justify-content: center; border-radius: 6px; }
+  .diamond-inner { transform: rotate(-45deg); font-size: 10px; font-weight: 700; color: #854d0e; text-align: center; padding: 6px; line-height: 1.25; }
+
+  /* SECTION DIVIDER */
+  .divider { width: 100%; max-width: 860px; display: flex; align-items: center; gap: 10px; margin: 10px 0 8px; }
+  .divider hr { flex: 1; border: none; border-top: 1.5px dashed #d1d5db; }
+  .divider span { font-size: 10px; color: #9ca3af; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; }
+
+  /* STATUS TAGS */
+  .tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 20px; justify-content: center; max-width: 860px; }
+  .tag { font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 20px; display: flex; align-items: center; gap: 5px; }
+
+  /* LEGEND */
+  .legend { display: flex; gap: 16px; margin-top: 16px; justify-content: center; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #6b7280; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+  /* BRANCH */
+  .branch-row { display: flex; align-items: flex-start; gap: 12px; width: 100%; max-width: 860px; }
+  .branch-col { display: flex; flex-direction: column; align-items: center; gap: 0; }
+
+  .connector-v { width: 2px; height: 18px; background: #d1d5db; margin: 0 auto; }
+  .connector-h { height: 2px; background: #d1d5db; flex: 1; margin-top: 30px; }
+
+  .outcome-row { display: flex; gap: 16px; justify-content: center; width: 100%; max-width: 860px; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<h1>🏗️ Como Funciona o CRM de Materiais de Construção</h1>
+<p class="subtitle">Fluxo simplificado para entender o sistema do início ao fim</p>
+
+<div class="flow-wrapper">
+
+  <!-- SEÇÃO 1: ENTRADA -->
+  <div class="divider"><hr><span>📋 Cadastro e Acompanhamento</span><hr></div>
+
+  <div class="lane">
+    <div class="lane-label">Vendedor</div>
+    <div class="lane-content" style="gap: 8px;">
+      <div class="box blue">
+        <div class="icon">👤</div>
+        <div class="label">Cadastra o Cliente</div>
+        <div class="sub">Nome, empresa, contato</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="box blue">
+        <div class="icon">📦</div>
+        <div class="label">Registra Pedido</div>
+        <div class="sub">Produto + valor + data</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="box green">
+        <div class="icon">🧠</div>
+        <div class="label">Sistema Calcula</div>
+        <div class="sub">Quando vai precisar de novo</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="box teal">
+        <div class="icon">📅</div>
+        <div class="label">Agenda Alerta</div>
+        <div class="sub">Ex: em 30 dias</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEÇÃO 2: AUTOMAÇÃO -->
+  <div class="divider"><hr><span>🤖 Automação — O Sistema Trabalha Sozinho</span><hr></div>
+
+  <div class="lane">
+    <div class="lane-label">Sistema</div>
+    <div class="lane-content" style="gap: 8px; flex-wrap: wrap;">
+      <div class="box purple">
+        <div class="icon">⏰</div>
+        <div class="label">Chega a Data</div>
+        <div class="sub">Sistema acorda</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="box purple">
+        <div class="icon">✍️</div>
+        <div class="label">IA Escreve</div>
+        <div class="sub">Mensagem personalizada</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="box green">
+        <div class="icon">📱</div>
+        <div class="label">Envia WhatsApp</div>
+        <div class="sub">Para o cliente</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEÇÃO 3: DECISÃO -->
+  <div style="height: 12px;"></div>
+  <div class="lane">
+    <div class="lane-label">Cliente</div>
+    <div class="lane-content" style="justify-content: center;">
+      <div class="diamond-wrap">
+        <div class="diamond">
+          <div class="diamond-inner">Respondeu?</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="height: 8px;"></div>
+
+  <!-- OUTCOMES -->
+  <div class="outcome-row">
+    <!-- SIM -->
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 0;">
+      <div style="font-size: 10px; color: #15803d; font-weight: 700; margin-bottom: 4px;">✅ SIM</div>
+      <div class="box green">
+        <div class="icon">💬</div>
+        <div class="label">IA Conversa</div>
+        <div class="sub">Responde dúvidas</div>
+      </div>
+      <div class="connector-v"></div>
+      <div class="box green">
+        <div class="icon">🛒</div>
+        <div class="label">Pedido Feito</div>
+        <div class="sub">Ciclo reinicia</div>
+      </div>
+    </div>
+
+    <!-- NAO -->
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 0;">
+      <div style="font-size: 10px; color: #c2410c; font-weight: 700; margin-bottom: 4px;">❌ NÃO</div>
+      <div class="box orange">
+        <div class="icon">🔁</div>
+        <div class="label">Tenta de Novo</div>
+        <div class="sub">1h → 3h → 24h</div>
+      </div>
+      <div class="connector-v"></div>
+      <div class="box red">
+        <div class="icon">🚨</div>
+        <div class="label">Alerta p/ Vendedor</div>
+        <div class="sub">Ligação necessária</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEÇÃO 4: VISÃO DO GESTOR -->
+  <div class="divider"><hr><span>📊 Visão do Gestor</span><hr></div>
+
+  <div class="lane">
+    <div class="lane-label">Gestor / Supervisor</div>
+    <div class="lane-content" style="gap: 8px;">
+      <div class="box gray">
+        <div class="icon">📊</div>
+        <div class="label">Dashboard</div>
+        <div class="sub">KPIs gerais</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="box gray">
+        <div class="icon">👥</div>
+        <div class="label">Equipe</div>
+        <div class="sub">Todos os vendedores</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="box gray">
+        <div class="icon">⚙️</div>
+        <div class="label">Configura Regras</div>
+        <div class="sub">Timings e mensagens</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="box gray">
+        <div class="icon">📈</div>
+        <div class="label">Relatórios</div>
+        <div class="sub">Clientes em risco</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATUS DOS CLIENTES -->
+  <div class="divider"><hr><span>🏷️ Status dos Clientes ao Longo do Tempo</span><hr></div>
+
+  <div class="tags">
+    <div class="tag blue" style="background:#dbeafe; color:#1d4ed8; border: 2px solid #93c5fd;">🟦 LEAD — Primeiro contato</div>
+    <div class="arrow" style="font-size:14px;">→</div>
+    <div class="tag" style="background:#f3e8ff; color:#7e22ce; border: 2px solid #c4b5fd;">🟣 PROSPECT — Em negociação</div>
+    <div class="arrow" style="font-size:14px;">→</div>
+    <div class="tag green" style="background:#dcfce7; color:#15803d; border: 2px solid #86efac;">🟢 ATIVO — Comprando</div>
+    <div class="arrow" style="font-size:14px;">→</div>
+    <div class="tag" style="background:#ffedd5; color:#c2410c; border: 2px solid #fdba74;">🟠 EM RISCO — Sumiu</div>
+    <div class="arrow" style="font-size:14px;">→</div>
+    <div class="tag red" style="background:#fee2e2; color:#b91c1c; border: 2px solid #fca5a5;">🔴 PERDIDO — Churn</div>
+  </div>
+
+  <div class="legend" style="margin-top: 24px;">
+    <div class="legend-item"><div class="legend-dot" style="background:#dbeafe; border: 1.5px solid #93c5fd;"></div> Ação do Vendedor</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f3e8ff; border: 1.5px solid #c4b5fd;"></div> IA / Automação</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#dcfce7; border: 1.5px solid #86efac;"></div> Resultado positivo</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#fee2e2; border: 1.5px solid #fca5a5;"></div> Requer atenção</div>
+  </div>
+
+</div>
+
+</body>
+</html>
