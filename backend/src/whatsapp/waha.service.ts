@@ -71,6 +71,7 @@ export class WahaWhatsAppService implements MessagingProvider {
       }
 
       const rawBody = await res.text();
+      this.logger.log(`WAHA send raw response (${res.status}): "${rawBody.slice(0, 300)}"`);
       const data: any = rawBody ? JSON.parse(rawBody) : {};
       // WAHA retorna o ID da mensagem no campo 'id'
       const externalId = data?.id ?? `waha_${Date.now()}`;
@@ -107,7 +108,8 @@ export class WahaWhatsAppService implements MessagingProvider {
         { headers: { 'X-Api-Key': this.apiKey } },
       );
       if (res.ok) {
-        const data: any = await res.json();
+        const rawLid = await res.text();
+        const data: any = rawLid ? JSON.parse(rawLid) : {};
         const lid = data?.lid ?? data?.id;
         if (lid) {
           const chatId = lid.endsWith('@lid') ? lid : `${lid}@lid`;
