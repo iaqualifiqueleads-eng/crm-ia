@@ -43,10 +43,11 @@ export function CustomerFormModal({ open, onClose, customer, onDelete }: Props) 
   const [form, setForm] = useState<CreateCustomerInput>(empty);
   const [whatsappError, setWhatsappError] = useState<string | null>(null);
   const [whatsappChecking, setWhatsappChecking] = useState(false);
+  const [whatsappValid, setWhatsappValid] = useState(false);
   const whatsappDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!open) { setConfirmDelete(false); setWhatsappError(null); setWhatsappChecking(false); return; }
+    if (!open) { setConfirmDelete(false); setWhatsappError(null); setWhatsappChecking(false); setWhatsappValid(false); return; }
     setForm(customer ? {
       companyName: customer.companyName,
       tradeName: customer.tradeName ?? undefined,
@@ -72,6 +73,7 @@ export function CustomerFormModal({ open, onClose, customer, onDelete }: Props) 
   const handleWhatsAppChange = (value: string) => {
     set('whatsapp', value);
     setWhatsappError(null);
+    setWhatsappValid(false);
     setWhatsappChecking(false);
     if (whatsappDebounce.current) clearTimeout(whatsappDebounce.current);
     const digits = value.replace(/\D/g, '');
@@ -84,6 +86,8 @@ export function CustomerFormModal({ open, onClose, customer, onDelete }: Props) 
         });
         if (!data.numberExists) {
           setWhatsappError('Esse número de telefone não está no WhatsApp');
+        } else {
+          setWhatsappValid(true);
         }
       } catch { /* silencioso */ }
       finally { setWhatsappChecking(false); }
@@ -213,10 +217,19 @@ export function CustomerFormModal({ open, onClose, customer, onDelete }: Props) 
                 value={form.whatsapp ?? ''}
                 onChange={(e) => handleWhatsAppChange(e.target.value)}
                 placeholder="5527999998888"
-                className={whatsappError ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}
+                className={
+                  whatsappError
+                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                    : whatsappValid
+                    ? 'border-green-500 focus:border-green-500 focus:ring-green-500/20'
+                    : ''
+                }
               />
               {whatsappError && (
                 <p className="mt-1 text-xs text-red-500">{whatsappError}</p>
+              )}
+              {whatsappValid && !whatsappError && (
+                <p className="mt-1 text-xs text-green-600">✓ Número confirmado no WhatsApp</p>
               )}
             </div>
             <div>
