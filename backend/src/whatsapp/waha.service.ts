@@ -70,7 +70,8 @@ export class WahaWhatsAppService implements MessagingProvider {
         };
       }
 
-      const data: any = await res.json();
+      const rawBody = await res.text();
+      const data: any = rawBody ? JSON.parse(rawBody) : {};
       // WAHA retorna o ID da mensagem no campo 'id'
       const externalId = data?.id ?? `waha_${Date.now()}`;
       this.logger.debug(`WAHA send ok (${Date.now() - t0}ms) → ${externalId}`);

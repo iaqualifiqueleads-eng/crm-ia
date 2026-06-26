@@ -70,7 +70,8 @@ export class EvolutionWhatsAppService implements MessagingProvider {
         };
       }
 
-      const data: any = await res.json();
+      const rawBody = await res.text();
+      const data: any = rawBody ? JSON.parse(rawBody) : {};
       const externalId = data?.key?.id ?? data?.id ?? `evo_${Date.now()}`;
       this.logger.debug(`Evolution send ok (${Date.now() - t0}ms) → ${externalId}`);
 
