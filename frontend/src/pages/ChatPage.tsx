@@ -20,7 +20,9 @@ function StatusIcon({ status }: { status: InteractionStatus }) {
 function MessageBubble({ interaction }: { interaction: Interaction }) {
   const isOut = interaction.direction === 'OUTBOUND';
   const isAi  = interaction.type === 'WHATSAPP_AI';
-  const time  = new Date(interaction.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const date  = new Date(interaction.createdAt);
+  const time  = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const day   = date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
 
   return (
     <div className={cn('flex gap-2 max-w-[78%]', isOut ? 'ml-auto flex-row-reverse' : 'flex-row')}>
@@ -52,7 +54,7 @@ function MessageBubble({ interaction }: { interaction: Interaction }) {
           {interaction.content}
         </div>
         <div className="flex items-center gap-1 px-1">
-          <span className="text-[10px] text-platinum-100/30">{time}</span>
+          <span className="text-[10px] text-platinum-100/30">{day} · {time}</span>
           {isOut && <StatusIcon status={interaction.status} />}
         </div>
         {interaction.status === 'FAILED' && interaction.failedReason && (
@@ -161,7 +163,7 @@ export function ChatPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-0px)] overflow-hidden bg-carbon">
+    <div className="flex overflow-hidden bg-carbon -mx-6 lg:-mx-10 -my-10" style={{ height: 'calc(100vh - 64px)' }}>
       {/* ── Lista de contatos ─────────────────────────── */}
       <div className="w-80 shrink-0 flex flex-col border-r border-pearl/8 bg-onyx">
         {/* Header */}
