@@ -20,6 +20,8 @@ import { AutomationPage } from '@/pages/AutomationPage';
 import { NotificationsPage } from '@/pages/NotificationsPage';
 import { AccountPage } from '@/pages/AccountPage';
 
+import { ChatPage } from '@/pages/ChatPage';
+
 // Fase 3
 import { AgentsPage } from '@/pages/AgentsPage';
 import { PlaygroundPage } from '@/pages/PlaygroundPage';
@@ -65,6 +67,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route path="templates"        element={<TemplatesPage />} />
             <Route path="team"             element={<TeamPage />} />
             <Route path="automation"       element={<AutomationPage />} />
+            <Route path="chat"             element={<ChatPage />} />
+            <Route path="chat/:customerId" element={<ChatPage />} />
             <Route path="notifications"    element={<NotificationsPage />} />
             <Route path="account"          element={<AccountPage />} />
 
