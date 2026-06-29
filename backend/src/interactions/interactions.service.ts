@@ -129,13 +129,24 @@ export class InteractionsService {
       },
     });
 
-    // Envia
-    const result = await this.messaging.send({
-      to: destination,
-      text: rendered.text,
-      externalRef: interaction.id,
-      metadata: { customerId: customer.id, automationRef: input.automationRef },
-    });
+    // Envia — se qualquer erro ocorrer, marca a interaction como FAILED (nunca fica em PENDING)
+    let result;
+    try {
+      result = await this.messaging.send({
+        to: destination,
+        text: rendered.text,
+        externalRef: interaction.id,
+        metadata: { customerId: customer.id, automationRef: input.automationRef },
+      });
+    } catch (sendErr: any) {
+      const msg = sendErr instanceof Error ? sendErr.message : String(sendErr);
+      this.logger.error(`messaging.send lançou exceção para interaction=${interaction.id}: ${msg}`);
+      await this.prisma.interaction.update({
+        where: { id: interaction.id },
+        data: { status: InteractionStatus.FAILED, failedReason: msg },
+      }).catch(() => {});
+      return this.prisma.interaction.findUniqueOrThrow({ where: { id: interaction.id } });
+    }
 
     // Atualiza — trata conflito de externalId em caso de retry
     let updated;
@@ -151,7 +162,6 @@ export class InteractionsService {
       });
     } catch (err: any) {
       if (err?.code === 'P2002') {
-        // externalId já existe — outra interaction já registrou esse envio
         this.logger.warn(`externalId duplicado no update (${result.externalId}) — buscando interaction existente`);
         updated = await this.prisma.interaction.findFirst({
           where: { externalId: result.externalId },

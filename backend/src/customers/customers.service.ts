@@ -14,6 +14,17 @@ import { buildPaginatedResult } from '../common/dto/pagination.dto';
 
 const FIRST_CONTACT_TEMPLATE_ID = '93b6f5db-a0c4-44e7-8552-8cb6ec34b1b5';
 
+/**
+ * Normaliza número WhatsApp para comparação de unicidade.
+ * Remove tudo que não é dígito e descarta o prefixo "55" (Brasil).
+ * Ex: "+55 27 99278-8660", "5527992788660", "27992788660" → "27992788660"
+ */
+function normalizeWhatsapp(raw: string): string {
+  const digits = raw.replace(/\D/g, '');
+  return digits.startsWith('55') && digits.length > 11 ? digits.slice(2) : digits;
+}
+
+
 @Injectable()
 export class CustomersService {
   constructor(
@@ -28,6 +39,10 @@ export class CustomersService {
     if (dto.cnpj) {
       const existing = await this.prisma.customer.findUnique({ where: { cnpj: dto.cnpj } });
       if (existing) throw new ConflictException('Já existe cliente com este CNPJ');
+    }
+
+    if (dto.whatsapp) {
+      await this.assertWhatsappUnique(dto.whatsapp);
     }
 
     const customer = await this.prisma.customer.create({
@@ -258,6 +273,10 @@ export class CustomersService {
       if (exists) throw new ConflictException('CNPJ já cadastrado em outro cliente');
     }
 
+    if (dto.whatsapp && normalizeWhatsapp(dto.whatsapp) !== normalizeWhatsapp(current.whatsapp ?? '')) {
+      await this.assertWhatsappUnique(dto.whatsapp, id);
+    }
+
     const statusChanged = dto.status && dto.status !== current.status;
     const forecastChanged =
       (dto.forecastMode && dto.forecastMode !== current.forecastMode) ||
@@ -444,6 +463,26 @@ export class CustomersService {
       if (!can) throw new ForbiddenException('Sem acesso a este cliente');
     }
     return customer;
+  }
+
+  private async assertWhatsappUnique(whatsapp: string, excludeId?: string): Promise<void> {
+    const normalized = normalizeWhatsapp(whatsapp);
+    const candidates = await this.prisma.customer.findMany({
+      where: {
+        deletedAt: null,
+        whatsapp: { not: null },
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+      },
+      select: { id: true, whatsapp: true, companyName: true },
+    });
+    const duplicate = candidates.find(
+      (c) => normalizeWhatsapp(c.whatsapp!) === normalized,
+    );
+    if (duplicate) {
+      throw new ConflictException(
+        `WhatsApp já cadastrado no cliente "${duplicate.companyName}"`,
+      );
+    }
   }
 
   private async resolveSalespersonId(

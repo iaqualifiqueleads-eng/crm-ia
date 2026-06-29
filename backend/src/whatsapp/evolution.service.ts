@@ -2,6 +2,13 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { MessagingProvider, OutgoingMessage, SendResult } from '../messaging/messaging.types';
 
+const FETCH_TIMEOUT_MS = 15_000;
+function fetchWithTimeout(url: string, options: RequestInit): Promise<Response> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
+  return fetch(url, { ...options, signal: ctrl.signal }).finally(() => clearTimeout(timer));
+}
+
 /**
  * Implementação do MessagingProvider usando Evolution API.
  *
@@ -50,7 +57,7 @@ export class EvolutionWhatsAppService implements MessagingProvider {
 
     const t0 = Date.now();
     try {
-      const res = await fetch(url, {
+      const res = await fetchWithTimeout(url, {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
