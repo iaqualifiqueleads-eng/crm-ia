@@ -139,7 +139,7 @@ export function ChatPage() {
   ).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
   // Filtra lista de contatos pelo search
-  const { data: allCustomers } = useCustomers({ limit: 500 });
+  const { data: allCustomers } = useCustomers({ limit: 100 });
   const customerMap = new Map((allCustomers?.data ?? []).map((c) => [c.id, c]));
 
   const filteredContacts = search.trim()
