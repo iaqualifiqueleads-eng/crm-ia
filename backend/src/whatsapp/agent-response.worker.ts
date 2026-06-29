@@ -82,7 +82,12 @@ export class AgentResponseWorker extends WorkerHost {
       externalRef: turn.outboundInteractionId,
     });
 
-    // 6. Atualiza o status da Interaction outbound criada pelo runtime
+    // 6. Loga resultado do envio e atualiza a Interaction
+    this.logger.log(
+      `WAHA send result → status=${sendResult.status} externalId=${sendResult.externalId}` +
+      (sendResult.errorMessage ? ` error="${sendResult.errorMessage}"` : ''),
+    );
+
     if (turn.outboundInteractionId) {
       try {
         await this.prisma.interaction.update({

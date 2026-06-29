@@ -48,6 +48,7 @@ export class WahaWhatsAppService implements MessagingProvider {
       session: 'default',
     };
 
+    this.logger.log(`WAHA sendText → chatId=${chatId} url=${url}`);
     const t0 = Date.now();
     try {
       const res = await fetch(url, {
