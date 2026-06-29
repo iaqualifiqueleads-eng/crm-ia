@@ -83,13 +83,23 @@ function ContactItem({
     <button
       onClick={onClick}
       className={cn(
-        'w-full flex items-start gap-3 px-4 py-3.5 text-left transition-colors',
-        isSelected ? 'bg-pearl/8' : 'hover:bg-pearl/4',
+        'w-full flex items-start gap-3 px-4 py-3.5 text-left transition-colors relative',
         'border-b border-pearl/5',
+        isSelected
+          ? 'bg-champagne/8 hover:bg-champagne/10'
+          : 'hover:bg-pearl/4',
       )}
     >
+      {/* Barra lateral de seleção */}
+      {isSelected && (
+        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-0.5 bg-champagne rounded-r" />
+      )}
+
       {/* Avatar */}
-      <div className="shrink-0 w-10 h-10 rounded-full bg-champagne/15 flex items-center justify-center text-champagne font-medium text-sm">
+      <div className={cn(
+        'shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-medium text-sm transition-colors',
+        isSelected ? 'bg-champagne/25 text-champagne' : 'bg-champagne/15 text-champagne',
+      )}>
         {(customer?.companyName ?? '?')[0].toUpperCase()}
       </div>
 
@@ -132,8 +142,11 @@ export function ChatPage() {
 
   const filteredContacts = search.trim()
     ? contacts.filter((c) => {
-        const name = customerMap.get(c.customerId)?.companyName?.toLowerCase() ?? '';
-        return name.includes(search.toLowerCase());
+        const customer = customerMap.get(c.customerId);
+        const q = search.toLowerCase();
+        const name = customer?.companyName?.toLowerCase() ?? '';
+        const whatsapp = (customer?.whatsapp ?? customer?.phone ?? '').replace(/\D/g, '');
+        return name.includes(q) || whatsapp.includes(q.replace(/\D/g, ''));
       })
     : contacts;
 
