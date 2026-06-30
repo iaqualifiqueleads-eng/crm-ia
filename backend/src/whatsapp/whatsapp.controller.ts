@@ -29,6 +29,7 @@ export class WhatsAppController {
   async checkNumber(@Query('phone') phone: string) {
     console.log('[phone] => ', phone);
     console.log('[encodeURIComponent(phone)] => ', encodeURIComponent(phone));
+    console.log('[this.wahaApiKey] => ', this.wahaApiKey);
 
     if (!phone) return { numberExists: false };
 
