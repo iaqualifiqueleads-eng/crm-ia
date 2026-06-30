@@ -28,22 +28,23 @@ export class WhatsAppController {
   @ApiOperation({ summary: 'Verifica se um número tem WhatsApp' })
   async checkNumber(@Query('phone') phone: string) {
     console.log('[phone] => ', phone);
+    console.log('[encodeURIComponent(phone)] => ', encodeURIComponent(phone));
 
     if (!phone) return { numberExists: false };
-    
+
     try {
       const res = await fetch(
         `${this.wahaUrl}/api/contacts/check-exists?phone=${encodeURIComponent(phone)}&session=default`,
         { headers: { 'X-Api-Key': this.wahaApiKey } },
       );
-    
+
       console.log('[res] => ', `${res.ok}`);
-    
+
       if (!res.ok) return { numberExists: false };
       const data: any = await res.json();
 
       console.log('[data] => ', `${data}`);
-      
+
       return { numberExists: !!data?.numberExists };
     } catch {
       return { numberExists: false };
@@ -93,7 +94,7 @@ export class WhatsAppController {
               connectedNumber = me?.id?.replace('@c.us', '') ?? me?.phone ?? 'desconhecido';
             }
           }
-        } catch (_) {}
+        } catch (_) { }
 
         await fetch(this.replayAgentWebhookUrl, {
           method: 'POST',
