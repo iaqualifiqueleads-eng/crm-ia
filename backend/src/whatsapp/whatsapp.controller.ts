@@ -27,12 +27,18 @@ export class WhatsAppController {
   @Get('check-number')
   @ApiOperation({ summary: 'Verifica se um número tem WhatsApp' })
   async checkNumber(@Query('phone') phone: string) {
+    console.log('[phone] => ', phone);
+
     if (!phone) return { numberExists: false };
+    
     try {
       const res = await fetch(
         `${this.wahaUrl}/api/contacts/check-exists?phone=${encodeURIComponent(phone)}&session=default`,
         { headers: { 'X-Api-Key': this.wahaApiKey } },
       );
+    
+      console.log('[res] => ', res.json());
+    
       if (!res.ok) return { numberExists: false };
       const data: any = await res.json();
       return { numberExists: !!data?.numberExists };
