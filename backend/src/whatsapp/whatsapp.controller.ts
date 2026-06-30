@@ -37,10 +37,13 @@ export class WhatsAppController {
         { headers: { 'X-Api-Key': this.wahaApiKey } },
       );
     
-      console.log('[res] => ', `${res}`);
+      console.log('[res] => ', `${res.ok}`);
     
       if (!res.ok) return { numberExists: false };
       const data: any = await res.json();
+
+      console.log('[data] => ', `${data}`);
+      
       return { numberExists: !!data?.numberExists };
     } catch {
       return { numberExists: false };
