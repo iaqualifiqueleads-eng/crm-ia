@@ -124,6 +124,68 @@ export interface ReplenishmentConfig {
   };
 }
 
+// ============== CAMPANHAS ==============
+
+export type CampaignStatus = 'DRAFT' | 'RUNNING' | 'PAUSED' | 'DONE' | 'CANCELLED';
+export type CampaignCustomerStatus = 'PENDING' | 'SENT' | 'FAILED' | 'SKIPPED';
+
+export interface CampaignCustomer {
+  id: string;
+  campaignId: string;
+  customerId: string;
+  customer: {
+    id: string;
+    companyName: string;
+    tradeName?: string | null;
+    state?: string | null;
+    city?: string | null;
+    whatsapp?: string | null;
+  };
+  status: CampaignCustomerStatus;
+  jobId?: string | null;
+  sentAt?: string | null;
+  failedReason?: string | null;
+  createdAt: string;
+}
+
+export interface Campaign {
+  id: string;
+  name: string;
+  status: CampaignStatus;
+  filters: string; // JSON string
+  templateId: string;
+  template?: { id: string; name: string } | null;
+  totalCustomers: number;
+  sentCount: number;
+  failedCount: number;
+  skippedCount: number;
+  createdById: string;
+  createdBy?: { id: string; name: string } | null;
+  createdAt: string;
+  executedAt?: string | null;
+  finishedAt?: string | null;
+  customers?: CampaignCustomer[];
+}
+
+export interface CampaignPreviewCustomer {
+  id: string;
+  companyName: string;
+  tradeName?: string | null;
+  state?: string | null;
+  city?: string | null;
+  whatsapp?: string | null;
+  status: string;
+  salesperson?: { id: string; name: string } | null;
+  lastInteractionAt?: string | null;
+  lastInteractionType?: string | null;
+}
+
+export interface CampaignPreview {
+  total: number;
+  withWhatsapp: number;
+  customers: CampaignPreviewCustomer[];
+}
+
 // ============== AGENTS (Fase 3) ==============
 
 export type AiProvider = 'CLAUDE' | 'OPENAI' | 'GEMINI';

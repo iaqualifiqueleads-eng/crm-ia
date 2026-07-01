@@ -21,7 +21,10 @@ import { InteractionsModule } from './interactions/interactions.module';
 import { WorkersModule } from './workers/workers.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 
-// Fase 3
+// Campanhas
+import { CampaignsModule } from './campaigns/campaigns.module';
+
+// Fase 3 — agentes + WhatsApp real
 import { AgentsModule } from './agents/agents.module';
 import { WhatsAppModule } from './whatsapp/whatsapp.module';
 
@@ -39,14 +42,14 @@ import { envValidation } from './config/env.validation';
     // Infra
     PrismaModule,
 
-    // Fase 1.1 — núcleo
+    // Fase 1.1
     AuthModule,
     UsersModule,
     CustomersModule,
     OrdersModule,
     ForecastModule,
 
-    // Fase 1.2 — automação + IA + dashboard
+    // Fase 1.2
     MessagingModule,
     AiModule,
     AutomationModule,
@@ -57,7 +60,10 @@ import { envValidation } from './config/env.validation';
     DashboardModule,
     WorkersModule,
 
-    // Fase 3 — agentes + WhatsApp real
+    // Campanhas
+    CampaignsModule,
+
+    // Fase 3
     AgentsModule,
     WhatsAppModule,
   ],

@@ -5,6 +5,7 @@ export const QUEUES = {
   REPLENISHMENT: 'replenishment',
   MESSAGE_RETRY: 'message-retry',
   OVERDUE_ESCALATION: 'overdue-escalation',
+  CAMPAIGN: 'campaign',
 } as const;
 
 /**
@@ -20,6 +21,9 @@ export const JOBS = {
 
   // OVERDUE_ESCALATION
   DAILY_OVERDUE: 'daily-overdue',                // varre atrasos e notifica/cria tarefas urgentes
+
+  // CAMPAIGN
+  CAMPAIGN_SEND: 'campaign-send',                // envia mensagem para um cliente de uma campanha
 } as const;
 
 // -----------------------------------------------------------
@@ -37,4 +41,12 @@ export interface CheckRetryJobData {
   previousInteractionId: string;
   retryStep: 1 | 2 | 3;          // 1h -> 1, 3h -> 2, 24h -> 3
   automationRef: string;
+}
+
+export interface CampaignSendJobData {
+  campaignId: string;
+  campaignCustomerId: string;     // id da linha em CampaignCustomer
+  customerId: string;
+  templateId: string;
+  automationRef: string;          // ex: "CAMPAIGN_<campaignId>_<customerId>"
 }

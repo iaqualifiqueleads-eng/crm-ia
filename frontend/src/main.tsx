@@ -22,6 +22,10 @@ import { AccountPage } from '@/pages/AccountPage';
 
 import { ChatPage } from '@/pages/ChatPage';
 
+// Campanhas
+import { CampaignsPage } from '@/pages/CampaignsPage';
+import { CampaignDetailPage } from '@/pages/CampaignDetailPage';
+
 // Fase 3
 import { AgentsPage } from '@/pages/AgentsPage';
 import { PlaygroundPage } from '@/pages/PlaygroundPage';
@@ -71,6 +75,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route path="chat/:customerId" element={<ChatPage />} />
             <Route path="notifications"    element={<NotificationsPage />} />
             <Route path="account"          element={<AccountPage />} />
+
+            {/* Campanhas */}
+            <Route path="campaigns"               element={<CampaignsPage />} />
+            <Route path="campaigns/:id"           element={<CampaignDetailPage />} />
 
             {/* Fase 3 */}
             <Route path="agents"                  element={<AgentsPage />} />
