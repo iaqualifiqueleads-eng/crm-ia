@@ -117,6 +117,7 @@ export interface ReplenishmentConfig {
   escalateToManagementAfterDays: number;
   defaultReminderTemplateId?: string;
   overdueTemplateId?: string;
+  firstContactStaggerMinutes?: number;
   retryTemplateIds?: {
     retry1?: string;
     retry2?: string;

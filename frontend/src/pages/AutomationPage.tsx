@@ -176,6 +176,19 @@ export function AutomationPage() {
                 Quando notificar supervisor e gerente sobre o atraso.
               </p>
             </div>
+
+            <div>
+              <Label>Intervalo entre disparos — importação CSV (minutos)</Label>
+              <Input
+                type="number" min={1} max={60}
+                value={form.firstContactStaggerMinutes ?? 10}
+                onChange={(e) => set('firstContactStaggerMinutes', Number(e.target.value))}
+                disabled={!isManager}
+              />
+              <p className="text-2xs text-smoke mt-1.5">
+                Espaçamento entre cada primeiro contato ao importar clientes em massa. Padrão: 10 min.
+              </p>
+            </div>
           </CardContent>
         </Card>
 

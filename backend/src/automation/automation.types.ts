@@ -30,6 +30,8 @@ export interface ReplenishmentFlowConfig {
   };
   /** Template para mensagem de cliente atrasado. */
   overdueTemplateId?: string;
+  /** Intervalo em minutos entre disparos de primeiro contato em importações em massa. */
+  firstContactStaggerMinutes: number;
 }
 
 export const DEFAULT_REPLENISHMENT_CONFIG: ReplenishmentFlowConfig = {
@@ -38,4 +40,5 @@ export const DEFAULT_REPLENISHMENT_CONFIG: ReplenishmentFlowConfig = {
   retryDelaysHours: [1, 3, 24],
   overdueTaskAfterDays: 1,
   escalateToManagementAfterDays: 3,
+  firstContactStaggerMinutes: 10,
 };

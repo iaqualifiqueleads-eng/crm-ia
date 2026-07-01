@@ -90,6 +90,7 @@ export interface CreateCustomerInput {
   manualIntervalDays?: number;
   salespersonId?: string;
   firstContactDelayMinutes?: number;
+  autoQueue?: boolean;
 }
 
 export function useCreateCustomer() {

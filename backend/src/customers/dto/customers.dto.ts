@@ -81,6 +81,10 @@ export class CreateCustomerDto {
   @ApiPropertyOptional({ description: 'Delay em minutos antes de disparar o primeiro contato via WhatsApp (útil em importações em massa)' })
   @IsOptional() @Type(() => Number) @IsInt() @Min(0)
   firstContactDelayMinutes?: number;
+
+  @ApiPropertyOptional({ description: 'Quando true, o backend calcula o delay automaticamente a partir dos jobs pendentes na fila, evitando sobreposição entre lotes de importação' })
+  @IsOptional()
+  autoQueue?: boolean;
 }
 
 export class UpdateCustomerDto extends PartialType(CreateCustomerDto) {}

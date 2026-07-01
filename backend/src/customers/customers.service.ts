@@ -83,7 +83,18 @@ export class CustomersService {
 
     // Dispara primeiro contato se o cliente tem whatsapp
     if (customer.whatsapp) {
-      const delayMs = (dto.firstContactDelayMinutes ?? 0) * 60 * 1000;
+      let delayMs: number;
+
+      if (dto.autoQueue) {
+        // Conta jobs first-contact pendentes na fila para evitar sobreposição entre lotes
+        const staggerMinutes = await this.getFirstContactStaggerMinutes();
+        const delayed = await this.replenishmentQueue.getDelayed();
+        const pendingCount = delayed.filter((j) => j.id?.startsWith('first-contact-')).length;
+        delayMs = pendingCount * staggerMinutes * 60 * 1000;
+      } else {
+        delayMs = (dto.firstContactDelayMinutes ?? 0) * 60 * 1000;
+      }
+
       await this.replenishmentQueue.add(
         JOBS.SEND_REMINDER,
         {
@@ -513,5 +524,21 @@ export class CustomersService {
     if (!u) throw new BadRequestException('Vendedor inválido');
 
     return requested;
+  }
+
+  private async getFirstContactStaggerMinutes(): Promise<number> {
+    try {
+      const rule = await this.prisma.automationRule.findUnique({
+        where: { key: 'REPLENISHMENT_FLOW' },
+        select: { config: true },
+      });
+      if (!rule) return 10;
+      const parsed = JSON.parse(rule.config);
+      return typeof parsed.firstContactStaggerMinutes === 'number'
+        ? parsed.firstContactStaggerMinutes
+        : 10;
+    } catch {
+      return 10;
+    }
   }
 }

@@ -206,9 +206,9 @@ export function CustomerImportModal({ open, onClose }: Props) {
       const row = validRows[i];
       try {
         await createCustomer.mutateAsync({
-        ...row.data!,
-        firstContactDelayMinutes: i * 10,
-      });
+          ...row.data!,
+          autoQueue: true,
+        });
         res.push({ index: row.index, companyName: row.data!.companyName, ok: true });
       } catch (err: any) {
         const msg = err?.response?.data?.message ?? 'Erro desconhecido';
