@@ -18,16 +18,16 @@ services:
       WHATSAPP_SWAGGER_PASSWORD: admin123
 
       # WHATSAPP_HOOK_EVENTS: message,message.any
-      # WHATSAPP_HOOK_URL: https://clskwf33f0imzlqdgav7wt0t.2.25.194.252.sslip.io/api/whatsapp/webhook
+      # WHATSAPP_HOOK_URL: ${BACKEND_API_URL}/api/whatsapp/webhook
       # WHATSAPP_HOOK_HMAC: secret_para_validar_entrada_de_mensagens
       # x-webhook-secret: secret_para_validar_entrada_de_mensagens
 
       # Formato novo (WAHA 2026+)
-      WAHA_WEBHOOK_URL: https://clskwf33f0imzlqdgav7wt0t.2.25.194.252.sslip.io/api/whatsapp/webhook
+      WAHA_WEBHOOK_URL: ${BACKEND_API_URL}/api/whatsapp/webhook
       WAHA_WEBHOOK_EVENTS: message,message.any
 
       # Notificação de sessão desconectada → backend → Replay Agente
-      WAHA_WEBHOOK_URL2: https://clskwf33f0imzlqdgav7wt0t.2.25.194.252.sslip.io/api/whatsapp/session-status
+      WAHA_WEBHOOK_URL2: ${BACKEND_API_URL}/api/whatsapp/session-status
       WAHA_WEBHOOK_EVENTS2: session.status
     volumes:
       - waha_sessions:/app/.sessions
