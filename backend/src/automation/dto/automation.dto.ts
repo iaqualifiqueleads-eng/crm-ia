@@ -37,6 +37,10 @@ export class UpdateReplenishmentConfigDto {
   @ApiPropertyOptional() @IsOptional() @IsUUID()
   overdueTemplateId?: string;
 
+  @ApiPropertyOptional({ default: 10, minimum: 1, maximum: 60 })
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(60)
+  firstContactStaggerMinutes?: number;
+
   @ApiPropertyOptional({ type: RetryTemplatesDto })
   @IsOptional() @ValidateNested() @Type(() => RetryTemplatesDto)
   retryTemplateIds?: RetryTemplatesDto;
