@@ -86,6 +86,7 @@ model User {
 
   // Fase 3
   agentsCreated    Agent[]           @relation("AgentCreatedBy")
+  campaignsCreated Campaign[]        @relation("CampaignCreatedBy")
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -188,6 +189,7 @@ model Customer {
 
   // Fase 3
   aiUsages      AiUsage[]
+  campaignEntries CampaignCustomer[]
 
   @@index([salespersonId])
   @@index([status])
@@ -488,6 +490,7 @@ model MessageTemplate {
   createdBy    User            @relation("TemplateCreatedBy", fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   interactions Interaction[]
+  campaigns    Campaign[]
 
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
@@ -547,6 +550,84 @@ model Notification {
   @@index([customerId])
   @@index([createdAt])
   @@map("notifications")
+}
+
+// ============================================================
+// CAMPANHAS — disparos em massa segmentados
+// ============================================================
+
+enum CampaignStatus {
+  DRAFT     // criada, ainda não executada (reservado para uso futuro)
+  RUNNING   // jobs enfileirados, enviando
+  PAUSED    // envios pausados; jobs PENDING ignorados pelo worker
+  DONE      // todos os clientes processados
+  CANCELLED // cancelada pelo usuário; jobs removidos da fila
+}
+
+enum CampaignCustomerStatus {
+  PENDING  // job na fila, aguardando envio
+  SENT     // mensagem enviada com sucesso
+  FAILED   // falha no envio
+  SKIPPED  // pulado (sem whatsapp, campanha cancelada, etc.)
+}
+
+model Campaign {
+  id          String         @id @default(uuid()) @db.VarChar(36)
+  name        String         @db.VarChar(150)
+  status      CampaignStatus @default(RUNNING)
+
+  // Filtros usados para selecionar os clientes (snapshot em JSON)
+  // Ex: { "state": "ES", "lastInteractionBefore": "2026-01-01" }
+  filters     String         @db.LongText
+
+  templateId  String         @db.VarChar(36)
+  template    MessageTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  // Contadores (cache — atualizados conforme jobs completam)
+  totalCustomers Int         @default(0)
+  sentCount      Int         @default(0)
+  failedCount    Int         @default(0)
+  skippedCount   Int         @default(0)
+
+  createdById String         @db.VarChar(36)
+  createdBy   User           @relation("CampaignCreatedBy", fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  createdAt   DateTime       @default(now())
+  executedAt  DateTime?
+  finishedAt  DateTime?
+
+  customers   CampaignCustomer[]
+
+  @@index([status])
+  @@index([createdById])
+  @@index([createdAt])
+  @@map("campaigns")
+}
+
+model CampaignCustomer {
+  id          String                 @id @default(uuid()) @db.VarChar(36)
+  campaignId  String                 @db.VarChar(36)
+  campaign    Campaign               @relation(fields: [campaignId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  customerId  String                 @db.VarChar(36)
+  customer    Customer               @relation(fields: [customerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  status      CampaignCustomerStatus @default(PENDING)
+
+  // BullMQ job id — necessário para remoção individual do job da fila
+  jobId       String?                @db.VarChar(100)
+
+  sentAt      DateTime?
+  failedReason String?               @db.VarChar(500)
+
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+
+  @@unique([campaignId, customerId])
+  @@index([campaignId])
+  @@index([customerId])
+  @@index([status])
+  @@map("campaign_customers")
 }
 
 // ============================================================
