@@ -93,6 +93,26 @@ export interface CreateCustomerInput {
   autoQueue?: boolean;
 }
 
+export interface BulkImportResult {
+  imported: number;
+  errors: Array<{ row: number; companyName: string; error: string }>;
+}
+
+export function useBulkImportCustomers() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (rows: CreateCustomerInput[]) => {
+      const { data } = await api.post<BulkImportResult>('/customers/bulk-import', { rows });
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['customers'] });
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+    onError: (err) => toast.error(extractErrorMessage(err)),
+  });
+}
+
 export function useCreateCustomer() {
   const qc = useQueryClient();
   return useMutation({

@@ -116,6 +116,28 @@ export class CustomersService {
 
 
   // -------------------------------------------------------
+  // BULK IMPORT
+  // -------------------------------------------------------
+  async bulkImport(
+    actor: CurrentUserPayload,
+    rows: CreateCustomerDto[],
+  ): Promise<{ imported: number; errors: Array<{ row: number; companyName: string; error: string }> }> {
+    const errors: Array<{ row: number; companyName: string; error: string }> = [];
+    let imported = 0;
+
+    for (let i = 0; i < rows.length; i++) {
+      try {
+        await this.create(actor, { ...rows[i], autoQueue: true });
+        imported++;
+      } catch (err: any) {
+        errors.push({ row: i + 1, companyName: rows[i].companyName, error: err?.message ?? 'Erro desconhecido' });
+      }
+    }
+
+    return { imported, errors };
+  }
+
+  // -------------------------------------------------------
   // EXPORT CSV
   // -------------------------------------------------------
   async exportCsv(actor: CurrentUserPayload, filters: CustomerFiltersDto): Promise<string> {

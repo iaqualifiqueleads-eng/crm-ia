@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { CustomerStatus, ForecastMode } from '@prisma/client';
 import {
+  IsArray,
   IsEmail,
   IsEnum,
   IsInt,
@@ -10,6 +11,7 @@ import {
   IsUUID,
   MaxLength,
   Min,
+  ValidateNested,
 } from 'class-validator';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 
@@ -88,6 +90,14 @@ export class CreateCustomerDto {
 }
 
 export class UpdateCustomerDto extends PartialType(CreateCustomerDto) {}
+
+export class BulkImportCustomerDto {
+  @ApiProperty({ type: [CreateCustomerDto] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateCustomerDto)
+  rows: CreateCustomerDto[];
+}
 
 export class TransferCustomerDto {
   @ApiProperty({ description: 'ID do novo vendedor responsável' })

@@ -14,6 +14,7 @@ import { Response } from 'express';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CustomersService } from './customers.service';
 import {
+  BulkImportCustomerDto,
   CreateCustomerDto,
   UpdateCustomerDto,
   TransferCustomerDto,
@@ -31,6 +32,12 @@ export class CustomersController {
   @ApiOperation({ summary: 'Cria um novo cliente' })
   create(@CurrentUser() actor: CurrentUserPayload, @Body() dto: CreateCustomerDto) {
     return this.customersService.create(actor, dto);
+  }
+
+  @Post('bulk-import')
+  @ApiOperation({ summary: 'Importa múltiplos clientes (processamento server-side)' })
+  bulkImport(@CurrentUser() actor: CurrentUserPayload, @Body() dto: BulkImportCustomerDto) {
+    return this.customersService.bulkImport(actor, dto.rows);
   }
 
   @Get('export')

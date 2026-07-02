@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Upload, Download, CheckCircle2, XCircle, Loader2, AlertTriangle } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
-import { useCreateCustomer, type CreateCustomerInput } from '@/features/customers/useCustomers';
+import { useBulkImportCustomers, type CreateCustomerInput } from '@/features/customers/useCustomers';
 import type { CustomerStatus, ForecastMode } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -145,7 +145,7 @@ function downloadTemplate() {
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 type ParsedRow = { index: number; raw: Record<string, string>; errors: string[]; data: CreateCustomerInput | null };
-type ImportResult = { index: number; companyName: string; ok: boolean; error?: string };
+type ImportResult = { row: number; companyName: string; error: string };
 
 // ── Modal ──────────────────────────────────────────────────────────────────────
 
@@ -155,13 +155,13 @@ export function CustomerImportModal({ open, onClose }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [step, setStep] = useState<'idle' | 'preview' | 'importing' | 'done'>('idle');
+  const [importedCount, setImportedCount] = useState(0);
   const [results, setResults] = useState<ImportResult[]>([]);
-  const [progress, setProgress] = useState(0);
   const [headerError, setHeaderError] = useState('');
-  const createCustomer = useCreateCustomer();
+  const bulkImport = useBulkImportCustomers();
 
   const reset = () => {
-    setRows([]); setStep('idle'); setResults([]); setProgress(0); setHeaderError('');
+    setRows([]); setStep('idle'); setImportedCount(0); setResults([]); setHeaderError('');
     if (fileRef.current) fileRef.current.value = '';
   };
 
@@ -200,28 +200,17 @@ export function CustomerImportModal({ open, onClose }: Props) {
 
   const handleImport = async () => {
     setStep('importing');
-    setProgress(0);
-    const res: ImportResult[] = [];
-    for (let i = 0; i < validRows.length; i++) {
-      const row = validRows[i];
-      try {
-        await createCustomer.mutateAsync({
-          ...row.data!,
-          autoQueue: true,
-        });
-        res.push({ index: row.index, companyName: row.data!.companyName, ok: true });
-      } catch (err: any) {
-        const msg = err?.response?.data?.message ?? 'Erro desconhecido';
-        res.push({ index: row.index, companyName: row.data!.companyName, ok: false, error: msg });
-      }
-      setProgress(i + 1);
+    try {
+      const result = await bulkImport.mutateAsync(validRows.map((r) => r.data!));
+      setImportedCount(result.imported);
+      setResults(result.errors);
+    } catch {
+      // toast already shown by the mutation's onError
     }
-    setResults(res);
     setStep('done');
   };
 
-  const successCount = results.filter((r) => r.ok).length;
-  const failCount = results.filter((r) => !r.ok).length;
+  const failCount = results.length;
 
   return (
     <Modal
@@ -365,20 +354,9 @@ export function CustomerImportModal({ open, onClose }: Props) {
 
       {/* ── IMPORTING ── */}
       {step === 'importing' && (
-        <div className="flex flex-col items-center gap-5 py-8">
+        <div className="flex flex-col items-center gap-4 py-10">
           <Loader2 className="w-8 h-8 text-onyx animate-spin" />
-          <div className="w-full max-w-sm space-y-2">
-            <div className="flex justify-between text-xs text-smoke">
-              <span>Importando...</span>
-              <span className="tabular-nums">{progress} / {validRows.length}</span>
-            </div>
-            <div className="h-1.5 bg-platinum-100 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-onyx rounded-full transition-all duration-200"
-                style={{ width: `${(progress / validRows.length) * 100}%` }}
-              />
-            </div>
-          </div>
+          <p className="text-sm text-graphite">Processando {validRows.length} cliente{validRows.length !== 1 ? 's' : ''}…</p>
         </div>
       )}
 
@@ -387,7 +365,7 @@ export function CustomerImportModal({ open, onClose }: Props) {
         <div className="space-y-4">
           <div className="flex items-center gap-4 text-sm">
             <span className="flex items-center gap-1.5 text-emerald-600 font-medium">
-              <CheckCircle2 className="w-4 h-4" /> {successCount} importado{successCount !== 1 ? 's' : ''}
+              <CheckCircle2 className="w-4 h-4" /> {importedCount} importado{importedCount !== 1 ? 's' : ''}
             </span>
             {failCount > 0 && (
               <span className="flex items-center gap-1.5 text-red-500 font-medium">
@@ -398,10 +376,11 @@ export function CustomerImportModal({ open, onClose }: Props) {
 
           {failCount > 0 && (
             <div className="max-h-[280px] overflow-y-auto rounded-sharp border border-platinum-100 divide-y divide-platinum-100/60">
-              {results.filter((r) => !r.ok).map((r) => (
-                <div key={r.index} className="px-4 py-2.5 bg-red-50/40 flex items-start gap-2 text-xs">
+              {results.map((r) => (
+                <div key={r.row} className="px-4 py-2.5 bg-red-50/40 flex items-start gap-2 text-xs">
                   <XCircle className="w-3.5 h-3.5 text-red-500 mt-0.5 shrink-0" />
                   <span>
+                    <span className="text-smoke tabular-nums mr-1.5">#{r.row}</span>
                     <span className="font-medium text-onyx">{r.companyName}</span>
                     <span className="text-red-600 ml-2">{r.error}</span>
                   </span>
