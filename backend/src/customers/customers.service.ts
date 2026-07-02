@@ -125,9 +125,17 @@ export class CustomersService {
     const errors: Array<{ row: number; companyName: string; error: string }> = [];
     let imported = 0;
 
+    // Calcula base de delay uma única vez antes do loop para evitar race condition
+    // com getDelayed() — jobs com delay=0 vão para "waiting", não "delayed", e seriam
+    // invisíveis para chamadas subsequentes de getDelayed().
+    const staggerMinutes = await this.getFirstContactStaggerMinutes();
+    const delayed = await this.replenishmentQueue.getDelayed();
+    const baseCount = delayed.filter((j) => j.id?.startsWith('first-contact-')).length;
+
     for (let i = 0; i < rows.length; i++) {
+      const delayMinutes = (baseCount + i) * staggerMinutes; // cliente 0 → 0 min, cliente 1 → 10 min, …
       try {
-        await this.create(actor, { ...rows[i], autoQueue: true });
+        await this.create(actor, { ...rows[i], firstContactDelayMinutes: delayMinutes });
         imported++;
       } catch (err: any) {
         errors.push({ row: i + 1, companyName: rows[i].companyName, error: err?.message ?? 'Erro desconhecido' });
